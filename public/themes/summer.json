@@ -1,0 +1,17 @@
+{
+  "id": "summer",
+  "label": "Summer",
+  "description": "Sunny warmth and ocean teal.",
+  "emoji": "☀️",
+  "colors": {
+    "bg": "#FFF9EC",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#FFF0D0",
+    "ink": "#2B2213",
+    "inkSoft": "#8A7852",
+    "border": "#F5DFA8",
+    "borderStrong": "#E8C876",
+    "accent": "#1E8A96",
+    "accentInk": "#FFFFFF"
+  }
+}

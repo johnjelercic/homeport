@@ -1,0 +1,17 @@
+{
+  "id": "winter",
+  "label": "Winter",
+  "description": "Cool blues for the holidays.",
+  "emoji": "❄️",
+  "colors": {
+    "bg": "#EEF2F6",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#E1E9F0",
+    "ink": "#1B2430",
+    "inkSoft": "#5E6B7A",
+    "border": "#D7DFE8",
+    "borderStrong": "#BCC8D6",
+    "accent": "#2B6CB0",
+    "accentInk": "#FFFFFF"
+  }
+}

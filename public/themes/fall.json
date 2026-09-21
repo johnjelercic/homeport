@@ -1,0 +1,17 @@
+{
+  "id": "fall",
+  "label": "Fall",
+  "description": "Warm oat and rust tones for autumn.",
+  "emoji": "🍂",
+  "colors": {
+    "bg": "#F5EEE1",
+    "surface": "#FFFDF8",
+    "surfaceMuted": "#EFE3CD",
+    "ink": "#2E2419",
+    "inkSoft": "#8A7458",
+    "border": "#E1D2B4",
+    "borderStrong": "#CFB98F",
+    "accent": "#B5591E",
+    "accentInk": "#FFFFFF"
+  }
+}

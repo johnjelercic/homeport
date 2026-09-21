@@ -1,0 +1,17 @@
+{
+  "id": "default",
+  "label": "Modern",
+  "description": "Clean and high-contrast, year-round.",
+  "emoji": "✨",
+  "colors": {
+    "bg": "#F3F4F6",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#F9FAFB",
+    "ink": "#16181D",
+    "inkSoft": "#6B7280",
+    "border": "#E5E7EB",
+    "borderStrong": "#D1D5DB",
+    "accent": "#4F46E5",
+    "accentInk": "#FFFFFF"
+  }
+}

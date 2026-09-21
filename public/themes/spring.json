@@ -1,0 +1,17 @@
+{
+  "id": "spring",
+  "label": "Spring",
+  "description": "Fresh grass green and new leaves.",
+  "emoji": "🌷",
+  "colors": {
+    "bg": "#F3F8EE",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#E5F0DC",
+    "ink": "#232D1C",
+    "inkSoft": "#647459",
+    "border": "#D6E6C8",
+    "borderStrong": "#B9D6A2",
+    "accent": "#4C8C3C",
+    "accentInk": "#FFFFFF"
+  }
+}

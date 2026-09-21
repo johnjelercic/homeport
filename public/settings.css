@@ -1,0 +1,546 @@
+body { overflow: auto; }
+
+.settings-wrap {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 40px 24px 80px;
+}
+
+.settings-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-header h1 {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.back-link {
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-weight: 600;
+  font-size: 14px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 8px 13px;
+}
+.back-link:hover { border-color: var(--border-strong); color: var(--ink); }
+
+.settings-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 2px solid var(--border);
+  margin-bottom: 24px;
+}
+.settings-tab {
+  border: none;
+  background: transparent;
+  padding: 10px 16px;
+  margin-bottom: -2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-soft);
+  border-bottom: 2px solid transparent;
+}
+.settings-tab:hover { color: var(--ink); }
+.settings-tab.active {
+  color: var(--ink);
+  border-bottom-color: var(--accent);
+}
+
+/* No `display` set here deliberately — plain block default — so toggling
+   `hidden` in JS isn't fighting a class-level display rule at equal
+   specificity (a bug this app has hit more than once elsewhere). */
+.tab-panel { }
+
+h2.section-title {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 32px 0 12px;
+}
+
+.cal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.cal-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.cal-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+}
+
+.cal-customize {
+  border-top: 1px solid var(--border);
+  padding: 14px 16px 16px;
+  background: var(--surface-muted);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.cal-customize[hidden] { display: none; }
+
+.customize-section { display: flex; flex-direction: column; gap: 8px; }
+.customize-label { font-size: 12.5px; font-weight: 700; color: var(--ink); }
+.customize-label .hint { display: block; font-size: 11.5px; font-weight: 500; color: var(--ink-soft); margin-top: 2px; line-height: 1.4; }
+
+.picker-slot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.custom-color-input {
+  width: 30px; height: 30px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 2px;
+  background: var(--surface);
+  cursor: pointer;
+}
+
+.rule-list { display: flex; flex-direction: column; gap: 6px; }
+.rule-empty { font-size: 12.5px; color: var(--ink-soft); }
+
+.rule-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px 6px 10px;
+}
+.rule-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.rule-keyword-text { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1; }
+.rule-remove {
+  border: none;
+  background: transparent;
+  color: var(--ink-soft);
+  font-size: 12px;
+  border-radius: 50%;
+  width: 22px; height: 22px;
+}
+.rule-remove:hover { background: var(--surface-muted); color: var(--danger); }
+
+.add-rule-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.add-rule-row .rule-keyword {
+  flex: 1;
+  min-width: 140px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: var(--font-ui);
+  background: var(--surface);
+  color: var(--ink);
+}
+.add-rule-btn {
+  border: 1px solid var(--border);
+  background: var(--ink);
+  color: var(--surface);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 700;
+}
+.add-rule-btn:hover { opacity: 0.9; }
+
+.customize-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.customize-btn:hover { border-color: var(--border-strong); }
+
+.cal-color-dot {
+  width: 16px; height: 16px; border-radius: 50%; flex: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--border);
+}
+.cal-color-dot:hover { box-shadow: 0 0 0 2px var(--surface), 0 0 0 3px var(--border-strong); }
+
+.cal-info { flex: 1; min-width: 0; }
+.cal-info .name { font-weight: 700; font-size: 15px; }
+.cal-info .url { font-size: 12px; color: var(--ink-soft); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.cal-info .status { font-size: 12px; font-weight: 600; margin-top: 2px; }
+.status.ok { color: var(--success); }
+.status.error { color: var(--danger); }
+.status.pending { color: var(--ink-soft); }
+
+.cal-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+.cal-actions button {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 7px 11px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.cal-actions button.danger { color: var(--danger); border-color: rgba(220,38,38,0.3); }
+
+.toggle {
+  position: relative;
+  width: 40px; height: 24px;
+  border-radius: 999px;
+  background: var(--border-strong);
+  border: none;
+  flex: none;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: 2px;
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  background: white;
+  transition: transform 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.25);
+}
+.toggle.on { background: var(--accent); }
+.toggle.on::after { transform: translateX(16px); }
+
+.add-form {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+}
+
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field label { font-size: 13px; color: var(--ink-soft); font-weight: 700; }
+.field input[type=text], .field input[type=url], .field input[type=number] {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 11px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  background: var(--surface-muted);
+  color: var(--ink);
+}
+.field input:focus { outline: 2px solid var(--accent); outline-offset: 1px; background: var(--surface); }
+
+.color-picker { display: flex; gap: 9px; flex-wrap: wrap; }
+.color-swatch {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: 2px solid transparent;
+  box-shadow: 0 0 0 1px var(--border);
+  cursor: pointer;
+}
+.color-swatch.selected { border-color: var(--surface); box-shadow: 0 0 0 2px var(--ink); }
+
+.primary-btn {
+  align-self: flex-start;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.primary-btn:hover { opacity: 0.92; }
+
+.timing-form {
+  flex-direction: row;
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.timing-form .field { flex: 0 0 200px; }
+.timing-form .primary-btn { margin-bottom: 1px; }
+.timing-form .form-msg { flex-basis: 100%; }
+
+.form-msg { font-size: 13px; font-weight: 600; }
+.form-msg.error { color: var(--danger); }
+.form-msg.ok { color: var(--success); }
+
+.sync-all-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 9px 15px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.sync-all-btn:hover { border-color: var(--border-strong); }
+
+.empty-note { color: var(--ink-soft); font-size: 14px; padding: 10px 2px; }
+
+/* ---------- Theme picker ---------- */
+/* A fully custom dropdown, not a native <select> — a native select's open
+   list is rendered by the OS/browser and can't be restyled, which is
+   exactly what reads as dated next to the rest of this app's design. */
+
+.theme-picker { margin-bottom: 8px; }
+
+.theme-dropdown {
+  position: relative;
+  display: inline-block;
+  min-width: 260px;
+}
+
+.theme-dropdown-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  box-shadow: var(--shadow-sm);
+}
+.theme-dropdown-trigger:hover { border-color: var(--border-strong); }
+.theme-dropdown.open .theme-dropdown-trigger {
+  border-color: var(--accent);
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.theme-dropdown-current {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dot-row { display: flex; gap: 3px; flex: none; }
+.dot-row span {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.08);
+}
+
+.chevron {
+  width: 7px; height: 7px;
+  border-right: 2px solid var(--ink-soft);
+  border-bottom: 2px solid var(--ink-soft);
+  transform: rotate(45deg);
+  margin-left: auto;
+  flex: none;
+  transition: transform 0.15s ease;
+}
+.theme-dropdown.open .chevron { transform: rotate(225deg); }
+
+.theme-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: max-content;
+  min-width: 100%;
+  max-width: 360px;
+  max-height: 380px;
+  overflow-y: auto;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: var(--shadow-md);
+  padding: 6px;
+  z-index: 20;
+}
+.theme-dropdown-menu[hidden] { display: none; }
+
+.theme-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  border-radius: 10px;
+  padding: 9px 10px;
+  text-align: left;
+  font-family: var(--font-ui);
+}
+.theme-option:hover { background: var(--surface-muted); }
+.theme-option.active { background: var(--surface-muted); }
+.theme-option .dot-row span { width: 12px; height: 12px; }
+
+.theme-option-text { flex: 1; min-width: 0; }
+.theme-option-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink);
+  display: block;
+}
+.theme-option-desc {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  display: block;
+  margin-top: 1px;
+  line-height: 1.3;
+}
+
+.theme-option-check {
+  flex: none;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+/* ---------- Photos ---------- */
+
+.photos-upload-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.upload-btn {
+  display: inline-block;
+  background: var(--ink);
+  color: var(--surface);
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.upload-btn:hover { opacity: 0.9; }
+
+.photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.photo-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: var(--surface-muted);
+}
+.photo-cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.photo-delete-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(16,24,40,0.65);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+}
+.photo-delete-btn:hover { background: var(--danger); }
+
+/* Deliberately no `display` set here — plain block default — so there's
+   no specificity fight with the browser's own `[hidden]{display:none}`
+   rule when JS toggles .hidden on this panel (a bug this app has hit
+   more than once elsewhere from setting `display` directly on a class). */
+.danger-zone {
+  border-top: 1px solid var(--border);
+  padding-top: 16px;
+  margin-bottom: 8px;
+}
+
+.danger-btn {
+  border: 1px solid rgba(220,38,38,0.35);
+  background: var(--surface);
+  color: var(--danger);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.danger-btn:hover { background: rgba(220,38,38,0.06); }
+.danger-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.delete-confirm-panel {
+  margin-top: 12px;
+  background: rgba(220,38,38,0.05);
+  border: 1px solid rgba(220,38,38,0.25);
+  border-radius: 10px;
+  padding: 16px;
+}
+.delete-confirm-panel p {
+  margin: 0 0 12px;
+  font-size: 14px;
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.confirm-checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-bottom: 14px;
+  cursor: pointer;
+}
+.confirm-checkbox-row input { width: 16px; height: 16px; }
+
+.delete-confirm-actions {
+  display: flex;
+  gap: 10px;
+}
+.ghost-btn {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.ghost-btn:hover { border-color: var(--border-strong); }
+
+.app-version {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  text-align: center;
+}

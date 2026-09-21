@@ -1,0 +1,17 @@
+{
+  "id": "fourth-of-july",
+  "label": "4th of July",
+  "description": "Bold patriotic red on warm white.",
+  "emoji": "🎆",
+  "colors": {
+    "bg": "#F5F4F0",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#E9E7DE",
+    "ink": "#1C1F2E",
+    "inkSoft": "#5B617A",
+    "border": "#DCD9CC",
+    "borderStrong": "#C4C0AC",
+    "accent": "#B0293C",
+    "accentInk": "#FFFFFF"
+  }
+}

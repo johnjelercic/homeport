@@ -1,0 +1,17 @@
+{
+  "id": "st-patricks-day",
+  "label": "St. Patrick's Day",
+  "description": "Shamrock green.",
+  "emoji": "🍀",
+  "colors": {
+    "bg": "#EFF6EE",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#DEEEDC",
+    "ink": "#16281B",
+    "inkSoft": "#5A7061",
+    "border": "#CBE0C9",
+    "borderStrong": "#A9CBA6",
+    "accent": "#1E7A3C",
+    "accentInk": "#FFFFFF"
+  }
+}

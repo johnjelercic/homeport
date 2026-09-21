@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Homeport</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="display.css" />
+</head>
+<body>
+<div class="app">
+
+  <header class="header">
+    <div class="header-date">
+      <span class="weekday" id="hdrWeekday">Monday</span>
+      <span class="monthday" id="hdrMonthDay">January 1</span>
+      <span class="clock" id="hdrClock">12:00 PM</span>
+      <span class="theme-emoji" id="hdrEmoji" hidden></span>
+    </div>
+    <div class="header-right">
+      <div class="legend" id="legend"></div>
+      <div class="view-toggle">
+        <button data-view="month" class="active">Month</button>
+        <button data-view="week">Week</button>
+        <button data-view="3day">3-Day</button>
+      </div>
+      <div class="layout-toggle" id="layoutToggle" hidden>
+        <button data-layout="stacked" class="active">Stacked</button>
+        <button data-layout="timeline">Timeline</button>
+      </div>
+      <div class="nav">
+        <button id="navPrev" aria-label="Previous">‹</button>
+        <button id="navToday" class="today-btn">Today</button>
+        <button id="navNext" aria-label="Next">›</button>
+      </div>
+      <a href="/settings.html" class="settings-link" title="Settings" aria-label="Settings">⚙</a>
+    </div>
+  </header>
+
+  <div class="grid-wrap">
+    <div class="weekday-row" id="weekdayRow"></div>
+    <div class="month-grid" id="monthGrid"></div>
+    <div class="week-grid" id="weekGrid" hidden></div>
+    <div class="three-day-grid" id="threeDayGrid" hidden></div>
+  </div>
+
+  <footer class="footer">
+    <span id="syncStatus">Syncing…</span>
+    <span id="rangeLabel"></span>
+  </footer>
+</div>
+
+<div class="modal-backdrop" id="eventModal" hidden>
+  <div class="modal-card">
+    <div class="modal-close"><button id="closeEventModal" aria-label="Close">✕</button></div>
+    <div class="modal-accent" id="modalAccent"></div>
+    <div class="modal-body">
+      <div class="modal-cal-name" id="modalCalName"><span class="dot"></span><span></span></div>
+      <h2 class="modal-title" id="modalTitle"></h2>
+      <div class="modal-row" id="modalTimeRow"></div>
+      <div class="modal-row" id="modalLocationRow" hidden></div>
+      <div class="modal-map" id="modalMap" hidden>
+        <div class="modal-map-directions">
+          <input type="text" id="modalMapFrom" placeholder="Starting address for directions" autocomplete="off" />
+          <button type="button" id="modalMapGoBtn">Directions</button>
+        </div>
+        <iframe id="modalMapFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade" sandbox="allow-scripts allow-same-origin" title="Event location map"></iframe>
+      </div>
+      <div class="modal-description" id="modalDescription"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="dayModal" hidden>
+  <div class="modal-card day-list">
+    <div class="modal-close"><button id="closeDayModal" aria-label="Close">✕</button></div>
+    <div class="modal-body">
+      <h2 class="modal-title" id="dayModalTitle"></h2>
+      <div class="day-list-events" id="dayModalEvents"></div>
+    </div>
+  </div>
+</div>
+
+<div class="photo-frame" id="photoFrame" hidden>
+  <img class="pf-img" id="pfImgA" alt="" />
+  <img class="pf-img" id="pfImgB" alt="" />
+  <div class="pf-clock" id="pfClock"></div>
+  <div class="pf-hint">Tap anywhere to return</div>
+</div>
+
+<script src="theme-loader.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

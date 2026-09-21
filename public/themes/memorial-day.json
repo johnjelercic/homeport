@@ -1,0 +1,17 @@
+{
+  "id": "memorial-day",
+  "label": "Memorial Day",
+  "description": "Solemn navy blue.",
+  "emoji": "🎖️",
+  "colors": {
+    "bg": "#F4F5F7",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#E7E9ED",
+    "ink": "#1B2033",
+    "inkSoft": "#5C637A",
+    "border": "#D7DBE3",
+    "borderStrong": "#B7BFCE",
+    "accent": "#2E3F6E",
+    "accentInk": "#FFFFFF"
+  }
+}

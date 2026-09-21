@@ -1,0 +1,17 @@
+{
+  "id": "new-year",
+  "label": "New Year's",
+  "description": "Elegant gold on midnight lavender-gray.",
+  "emoji": "🥂",
+  "colors": {
+    "bg": "#F4F3F6",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#E9E7ED",
+    "ink": "#201C2B",
+    "inkSoft": "#6B6577",
+    "border": "#DAD5E1",
+    "borderStrong": "#C2BACC",
+    "accent": "#A8842E",
+    "accentInk": "#FFFFFF"
+  }
+}

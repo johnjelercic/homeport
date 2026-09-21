@@ -1,0 +1,17 @@
+{
+  "id": "thanksgiving",
+  "label": "Thanksgiving",
+  "description": "Cranberry and warm harvest gold.",
+  "emoji": "🦃",
+  "colors": {
+    "bg": "#F7EFE4",
+    "surface": "#FFFDF9",
+    "surfaceMuted": "#EFE1CE",
+    "ink": "#2B211A",
+    "inkSoft": "#8A7860",
+    "border": "#E3D2B8",
+    "borderStrong": "#D0B98F",
+    "accent": "#8C2F39",
+    "accentInk": "#FFFFFF"
+  }
+}

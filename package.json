@@ -1,0 +1,22 @@
+{
+  "name": "homeport",
+  "version": "1.0.0",
+  "description": "Self-hosted family calendar display that syncs public ICS calendar feeds into a local database and shows them on a kiosk display.",
+  "main": "server/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^11.3.0",
+    "express": "^4.19.2",
+    "heic-convert": "^2.1.0",
+    "multer": "^2.4.0",
+    "node-cron": "^3.0.3",
+    "node-ical": "^0.20.1",
+    "rrule": "^2.8.1"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

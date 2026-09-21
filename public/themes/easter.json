@@ -1,0 +1,17 @@
+{
+  "id": "easter",
+  "label": "Easter",
+  "description": "Soft pastel pink and lavender.",
+  "emoji": "🐣",
+  "colors": {
+    "bg": "#FAF3F7",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#F1E3ED",
+    "ink": "#362A34",
+    "inkSoft": "#8B7A88",
+    "border": "#EAD7E4",
+    "borderStrong": "#D9BAD0",
+    "accent": "#C25B8E",
+    "accentInk": "#FFFFFF"
+  }
+}

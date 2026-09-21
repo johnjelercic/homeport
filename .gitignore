@@ -1,0 +1,6 @@
+node_modules/
+data/
+public/photos/*
+!public/photos/README.txt
+*.log
+.DS_Store

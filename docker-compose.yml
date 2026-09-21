@@ -1,0 +1,27 @@
+services:
+  homeport:
+    # Pulled from GitHub Container Registry, not built locally — see
+    # .github/workflows/publish.yml, which builds and pushes this image
+    # automatically on every push to main. Update the path below to your
+    # own GitHub username/org once you've set up the repo (README has the
+    # full walkthrough). If you ever want to build from local source
+    # instead (e.g. testing a change before pushing), swap this line for
+    # `build: .`
+    image: ghcr.io/<your-github-username>/homeport:latest
+    container_name: homeport
+    restart: unless-stopped
+    ports:
+      - "19156:19156"
+    volumes:
+      - ./data:/app/data
+      - ./photos:/app/public/photos
+    environment:
+      # How often (minutes) to re-pull every subscribed calendar feed.
+      - SYNC_INTERVAL_MINUTES=15
+    labels:
+      # Inert on its own — does nothing unless something is actually
+      # watching for it. If you run Watchtower (or a similar updater)
+      # elsewhere on this NAS, point it at containers carrying this label
+      # rather than watching everything; this project doesn't assume you
+      # have one, don't have one, or want one managed here.
+      - "com.centurylinklabs.watchtower.enable=true"

@@ -1,0 +1,434 @@
+const path = require('path');
+const fs = require('fs');
+const express = require('express');
+const cron = require('node-cron');
+const multer = require('multer');
+
+const db = require('./db');
+const { syncAllCalendars } = require('./sync');
+const { expandEvents } = require('./expand');
+
+const app = express();
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+const PORT = process.env.PORT || 19156;
+const SYNC_INTERVAL_MINUTES = parseInt(process.env.SYNC_INTERVAL_MINUTES || '15', 10);
+
+// ---------- Calendars ----------
+
+function parseColorRules(json) {
+  try {
+    const rules = JSON.parse(json || '[]');
+    return Array.isArray(rules) ? rules : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function withParsedRules(calendar) {
+  if (!calendar) return calendar;
+  return { ...calendar, color_rules: parseColorRules(calendar.color_rules) };
+}
+
+app.get('/api/calendars', (req, res) => {
+  const calendars = db.prepare('SELECT * FROM calendars ORDER BY id').all();
+  res.json(calendars.map(withParsedRules));
+});
+
+app.post('/api/calendars', (req, res) => {
+  const { name, url, color } = req.body || {};
+  if (!name || !url) return res.status(400).json({ error: 'name and url are required' });
+  const info = db
+    .prepare('INSERT INTO calendars (name, url, color) VALUES (?, ?, ?)')
+    .run(name.trim(), url.trim(), color || '#3B6E8F');
+  const calendar = db.prepare('SELECT * FROM calendars WHERE id = ?').get(info.lastInsertRowid);
+
+  // Sync just this new calendar right away so it doesn't wait for the next tick.
+  const { syncCalendar } = require('./sync');
+  syncCalendar(calendar).catch(() => {});
+
+  res.status(201).json(withParsedRules(calendar));
+});
+
+app.put('/api/calendars/:id', (req, res) => {
+  const id = Number(req.params.id);
+  const existing = db.prepare('SELECT * FROM calendars WHERE id = ?').get(id);
+  if (!existing) return res.status(404).json({ error: 'not found' });
+
+  const { name, url, color, visible, color_rules } = req.body || {};
+
+  let colorRulesJson = existing.color_rules;
+  if (color_rules !== undefined) {
+    if (!Array.isArray(color_rules) || color_rules.some((r) => !r || typeof r.keyword !== 'string' || typeof r.color !== 'string')) {
+      return res.status(400).json({ error: 'color_rules must be an array of {keyword, color}' });
+    }
+    colorRulesJson = JSON.stringify(
+      color_rules.map((r) => ({ keyword: r.keyword.trim(), color: r.color })).filter((r) => r.keyword)
+    );
+  }
+
+  db.prepare(
+    'UPDATE calendars SET name = ?, url = ?, color = ?, visible = ?, color_rules = ? WHERE id = ?'
+  ).run(
+    name !== undefined ? name : existing.name,
+    url !== undefined ? url : existing.url,
+    color !== undefined ? color : existing.color,
+    visible !== undefined ? (visible ? 1 : 0) : existing.visible,
+    colorRulesJson,
+    id
+  );
+  res.json(withParsedRules(db.prepare('SELECT * FROM calendars WHERE id = ?').get(id)));
+});
+
+app.delete('/api/calendars/:id', (req, res) => {
+  const id = Number(req.params.id);
+  db.prepare('DELETE FROM events WHERE calendar_id = ?').run(id);
+  db.prepare('DELETE FROM calendars WHERE id = ?').run(id);
+  res.status(204).end();
+});
+
+app.post('/api/sync', async (req, res) => {
+  const results = await syncAllCalendars();
+  res.json({ results });
+});
+
+// ---------- Events ----------
+
+app.get('/api/events', (req, res) => {
+  const { start, end } = req.query;
+  if (!start || !end) return res.status(400).json({ error: 'start and end query params (ISO dates) are required' });
+
+  const rangeStart = new Date(start);
+  const rangeEnd = new Date(end);
+  if (isNaN(rangeStart) || isNaN(rangeEnd)) {
+    return res.status(400).json({ error: 'start and end must be valid dates' });
+  }
+
+  // Pull events for visible calendars. The 400-day pre-filter only applies
+  // to non-recurring events (as a performance shortcut) — a recurring
+  // event's start_utc is its *original* series start, which is often years
+  // old, so filtering recurring rows by it would wrongly hide any
+  // long-running weekly/monthly series. Those are always included and
+  // trimmed properly by expandEvents() below.
+  const padded = new Date(rangeStart.getTime() - 400 * 24 * 60 * 60 * 1000).toISOString();
+  const rows = db
+    .prepare(
+      `SELECT e.*, c.name as calendar_name, c.color as calendar_color, c.color_rules as calendar_color_rules
+       FROM events e JOIN calendars c ON c.id = e.calendar_id
+       WHERE c.visible = 1 AND (e.rrule IS NOT NULL OR e.start_utc >= ?)`
+    )
+    .all(padded);
+
+  const occurrences = expandEvents(rows, rangeStart, rangeEnd);
+
+  // First matching keyword rule (case-insensitive, matched against the
+  // event's title or description) overrides that event's display color —
+  // this is what lets one shared calendar color-code by person/subject
+  // without splitting it into separate feeds.
+  function colorForOccurrence(occ, row) {
+    const rules = parseColorRules(row && row.calendar_color_rules);
+    if (rules.length) {
+      const haystack = `${occ.summary || ''} ${occ.description || ''}`.toLowerCase();
+      const match = rules.find((r) => r.keyword && haystack.includes(r.keyword.toLowerCase()));
+      if (match) return match.color;
+    }
+    return row ? row.calendar_color : null;
+  }
+
+  const byId = new Map(rows.map((r) => [`${r.calendar_id}:${r.id}`, r]));
+  const out = occurrences.map((occ) => {
+    const row = byId.get(`${occ.calendar_id}:${occ.uid}`);
+    return {
+      ...occ,
+      calendar_name: row ? row.calendar_name : null,
+      calendar_color: row ? row.calendar_color : null,
+      color: colorForOccurrence(occ, row)
+    };
+  });
+
+  res.json(out);
+});
+
+// ---------- Themes & settings ----------
+
+const THEMES_DIR = path.join(__dirname, '..', 'public', 'themes');
+
+// Reads the themes directory fresh on every call rather than caching, so
+// dropping in/editing/removing a .json file there takes effect immediately
+// — no restart needed to pick up a new or changed theme.
+function loadThemes() {
+  if (!fs.existsSync(THEMES_DIR)) return [];
+  return fs
+    .readdirSync(THEMES_DIR)
+    .filter((f) => f.endsWith('.json'))
+    .map((f) => {
+      try {
+        const theme = JSON.parse(fs.readFileSync(path.join(THEMES_DIR, f), 'utf8'));
+        if (!theme.id || !theme.colors) throw new Error('missing id or colors');
+        return theme;
+      } catch (e) {
+        console.warn(`Skipping malformed theme file "${f}": ${e.message}`);
+        return null;
+      }
+    })
+    .filter(Boolean)
+    // Alphabetical by label, not by filename/directory order (which isn't
+    // guaranteed alphabetical in the first place, and wouldn't match label
+    // order anyway — e.g. default.json's label is "Modern").
+    .sort((a, b) => (a.label || a.id).localeCompare(b.label || b.id));
+}
+
+const SETTINGS_DEFAULTS = {
+  active_theme: 'default',
+  idle_timeout_minutes: 10,
+  photo_interval_seconds: 20
+};
+
+function getSetting(key) {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(key);
+  return row ? row.value : null;
+}
+
+function setSetting(key, value) {
+  db.prepare(
+    `INSERT INTO settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+  ).run(key, String(value));
+}
+
+function getAllSettings() {
+  return {
+    active_theme: getSetting('active_theme') || SETTINGS_DEFAULTS.active_theme,
+    idle_timeout_minutes: Number(getSetting('idle_timeout_minutes')) || SETTINGS_DEFAULTS.idle_timeout_minutes,
+    photo_interval_seconds: Number(getSetting('photo_interval_seconds')) || SETTINGS_DEFAULTS.photo_interval_seconds
+  };
+}
+
+app.get('/api/themes', (req, res) => {
+  res.json(loadThemes());
+});
+
+// Read fresh each request (not cached at startup) so an update to VERSION
+// takes effect without a restart — consistent with themes/settings.
+app.get('/api/version', (req, res) => {
+  let version = 'unknown';
+  try {
+    version = fs.readFileSync(path.join(__dirname, '..', 'VERSION'), 'utf8').trim();
+  } catch (e) { /* no VERSION file — fall back to 'unknown' */ }
+  res.json({ version });
+});
+
+app.get('/api/settings', (req, res) => {
+  res.json(getAllSettings());
+});
+
+app.put('/api/settings', (req, res) => {
+  const { active_theme, idle_timeout_minutes, photo_interval_seconds } = req.body || {};
+
+  if (active_theme !== undefined) {
+    const themes = loadThemes();
+    if (!themes.find((t) => t.id === active_theme)) {
+      return res.status(400).json({ error: `Unknown theme "${active_theme}"` });
+    }
+    setSetting('active_theme', active_theme);
+  }
+
+  if (idle_timeout_minutes !== undefined) {
+    const n = Number(idle_timeout_minutes);
+    if (!Number.isFinite(n) || n < 1 || n > 180) {
+      return res.status(400).json({ error: 'idle_timeout_minutes must be between 1 and 180' });
+    }
+    setSetting('idle_timeout_minutes', n);
+  }
+
+  if (photo_interval_seconds !== undefined) {
+    const n = Number(photo_interval_seconds);
+    if (!Number.isFinite(n) || n < 3 || n > 600) {
+      return res.status(400).json({ error: 'photo_interval_seconds must be between 3 and 600' });
+    }
+    setSetting('photo_interval_seconds', n);
+  }
+
+  res.json(getAllSettings());
+});
+
+// ---------- Photo frame ----------
+
+const heic = require('./heic');
+
+const PHOTOS_DIR = path.join(__dirname, '..', 'public', 'photos');
+if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
+
+const PHOTO_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+
+// Scans the photos directory, converting any HEIC/HEIF files to JPEG
+// (cached to disk — see server/heic.js) and cleaning up orphaned cache
+// files whose original was deleted. Shared by the /api/photos route
+// (which always reflects live disk state) and the startup scan below, so
+// HEIC files already present at boot are converted immediately rather
+// than waiting for the display's first idle cycle to ask for them.
+async function listPhotos() {
+  if (!fs.existsSync(PHOTOS_DIR)) return { photos: [], converted: 0, alreadyCached: 0 };
+  const allFiles = fs.readdirSync(PHOTOS_DIR);
+
+  heic.cleanupOrphanedCaches(PHOTOS_DIR, allFiles);
+
+  const standardFiles = allFiles.filter(
+    (f) => PHOTO_EXTENSIONS.has(path.extname(f).toLowerCase()) && !f.endsWith(heic.CACHE_SUFFIX)
+  );
+  const heicFiles = allFiles.filter((f) => heic.isHeic(f));
+
+  const photos = standardFiles.map((f) => ({ file: f, url: `/photos/${encodeURIComponent(f)}` }));
+
+  let converted = 0;
+  let alreadyCached = 0;
+  for (const heicFile of heicFiles) {
+    try {
+      const result = await heic.ensureConverted(PHOTOS_DIR, heicFile);
+      if (result.converted) converted++; else alreadyCached++;
+      photos.push({ file: heicFile, url: `/photos/${encodeURIComponent(result.cacheFilename)}` });
+    } catch (e) {
+      console.warn(`Could not convert HEIC photo "${heicFile}": ${e.message}`);
+    }
+  }
+
+  photos.sort((a, b) => a.file.localeCompare(b.file));
+  return { photos, converted, alreadyCached };
+}
+
+app.get('/api/photos', async (req, res) => {
+  const { photos } = await listPhotos();
+  res.json(photos);
+});
+
+// A filename considered "photo-related" for upload/delete purposes: a
+// supported image extension, a HEIC/HEIF original, or a generated HEIC
+// cache file. Used to keep uploads restricted to real images and to make
+// sure bulk-delete only ever touches photo files — never README.txt or
+// anything else that might end up in this folder.
+function isPhotoRelatedFilename(filename) {
+  const ext = path.extname(filename).toLowerCase();
+  return PHOTO_EXTENSIONS.has(ext) || heic.isHeic(filename) || filename.endsWith(heic.CACHE_SUFFIX);
+}
+
+// Avoids clobbering an existing file that happens to share a name (e.g.
+// two different phones both producing "IMG_1234.jpg") by appending " (1)",
+// " (2)", etc. until the name is free, rather than silently overwriting.
+function uniqueFilename(dir, originalName) {
+  const ext = path.extname(originalName);
+  const base = path.basename(originalName, ext);
+  let candidate = originalName;
+  let n = 1;
+  while (fs.existsSync(path.join(dir, candidate))) {
+    candidate = `${base} (${n})${ext}`;
+    n++;
+  }
+  return candidate;
+}
+
+const photoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, PHOTOS_DIR),
+    filename: (req, file, cb) => {
+      // originalname is user-controlled — basename it to strip any path
+      // component, then drop anything that isn't a safe filename character.
+      const safeName = path.basename(file.originalname).replace(/[^\w.\- ()]/g, '_');
+      cb(null, uniqueFilename(PHOTOS_DIR, safeName));
+    }
+  }),
+  limits: { fileSize: 25 * 1024 * 1024, files: 50 },
+  fileFilter: (req, file, cb) => cb(null, isPhotoRelatedFilename(file.originalname))
+});
+
+app.post('/api/photos/upload', (req, res) => {
+  photoUpload.array('photos', 50)(req, res, async (err) => {
+    if (err) {
+      const message =
+        err.code === 'LIMIT_FILE_SIZE' ? 'One or more files are over the 25 MB limit.' :
+        err.code === 'LIMIT_FILE_COUNT' ? 'Too many files at once (50 max per upload).' :
+        'Upload failed.';
+      return res.status(400).json({ error: message });
+    }
+    if (!req.files || req.files.length === 0) {
+      return res.status(400).json({ error: 'No valid image files were uploaded (check the file type).' });
+    }
+    // Convert any newly-uploaded HEIC files right away rather than waiting
+    // for the display's next idle cycle to ask for them.
+    const { converted } = await listPhotos();
+    res.json({ uploaded: req.files.length, converted });
+  });
+});
+
+app.delete('/api/photos/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename); // strip any path component defensively
+  if (!isPhotoRelatedFilename(filename)) return res.status(400).json({ error: 'not a photo file' });
+  const filePath = path.join(PHOTOS_DIR, filename);
+  if (!fs.existsSync(filePath)) return res.status(404).json({ error: 'not found' });
+  fs.unlinkSync(filePath);
+  const cachePath = filePath + heic.CACHE_SUFFIX;
+  if (fs.existsSync(cachePath)) fs.unlinkSync(cachePath); // also drop its HEIC cache, if any
+  res.status(204).end();
+});
+
+// Deletes every photo-related file in the folder — every image, every
+// HEIC/HEIF original, and every generated .converted.jpg cache. Never
+// touches README.txt or anything else that isn't recognized as a photo.
+// The Settings-page UI gates this behind its own multi-step confirmation;
+// this endpoint itself performs no confirmation of its own.
+app.delete('/api/photos', (req, res) => {
+  if (!fs.existsSync(PHOTOS_DIR)) return res.json({ deleted: 0 });
+  const allFiles = fs.readdirSync(PHOTOS_DIR);
+  let deleted = 0;
+  for (const f of allFiles) {
+    if (!isPhotoRelatedFilename(f)) continue;
+    try {
+      fs.unlinkSync(path.join(PHOTOS_DIR, f));
+      deleted++;
+    } catch (e) {
+      console.warn(`Could not delete "${f}": ${e.message}`);
+    }
+  }
+  res.json({ deleted });
+});
+
+// ---------- Boot ----------
+
+async function start() {
+  console.log('Running initial calendar sync...');
+  try {
+    const results = await syncAllCalendars();
+    results.forEach((r) => {
+      if (r.ok) console.log(`  synced "${r.name}"`);
+      else console.warn(`  FAILED "${r.name}": ${r.error}`);
+    });
+  } catch (e) {
+    console.error('Initial sync failed:', e);
+  }
+
+  console.log('Scanning photos folder for HEIC/HEIF files to convert...');
+  try {
+    const { converted, alreadyCached } = await listPhotos();
+    if (converted === 0 && alreadyCached === 0) console.log('  none found');
+    else console.log(`  converted ${converted} new, ${alreadyCached} already cached`);
+  } catch (e) {
+    console.error('HEIC conversion scan failed:', e);
+  }
+
+  cron.schedule(`*/${SYNC_INTERVAL_MINUTES} * * * *`, () => {
+    console.log('Running scheduled calendar sync...');
+    syncAllCalendars().then((results) => {
+      results.forEach((r) => {
+        if (!r.ok) console.warn(`  FAILED "${r.name}": ${r.error}`);
+      });
+    });
+  });
+
+  app.listen(PORT, () => {
+    console.log(`Homeport server listening on port ${PORT}`);
+    console.log(`Display:  http://localhost:${PORT}/`);
+    console.log(`Settings: http://localhost:${PORT}/settings.html`);
+  });
+}
+
+start();

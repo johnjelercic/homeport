@@ -1,0 +1,17 @@
+{
+  "id": "christmas",
+  "label": "Christmas",
+  "description": "Pine green on a crisp, cool white.",
+  "emoji": "🎄",
+  "colors": {
+    "bg": "#F3F6F3",
+    "surface": "#FFFFFF",
+    "surfaceMuted": "#E7EEE7",
+    "ink": "#1B2A20",
+    "inkSoft": "#5F7264",
+    "border": "#D8E3D9",
+    "borderStrong": "#B8CCBA",
+    "accent": "#1F5C3D",
+    "accentInk": "#FFFFFF"
+  }
+}
