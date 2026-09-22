@@ -304,8 +304,9 @@ When Week or 3-Day view is active, a second toggle appears
   elsewhere that day aren't affected. All-day events show as a small
   strip above the timed area rather than being placed on the timeline.
   Today's column also shows a red line marking the current time. The
-  window's start/end are set in `app.js` (`TIMELINE_DEFAULT_START_MIN`/
-  `_END_MIN`) if you want different hours.
+  window's start/end hour (4 AM–11 PM by default) is adjustable in
+  Settings → Calendars tab → "Timeline view hours" — including a full
+  0–24 setting for a true 24-hour view.
 
 This choice isn't persisted — it resets to Stacked on reload, the same
 way the Month/Week/3-Day selection itself does.

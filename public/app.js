@@ -297,14 +297,16 @@
 
   // ---------- Timeline layout ----------
 
-  // Fixed to the "usable" hours of the day rather than auto-expanding to
-  // fit outlier events — condensing the range gives everything within it
-  // more vertical room, which is the whole point of a timeline view.
-  // Anything outside this window (a 2am flight, an 11:30pm event) is
-  // clamped to sit flush against the top or bottom edge instead of
-  // stretching the range to include it.
-  const TIMELINE_DEFAULT_START_MIN = 4 * 60;   // 4:00 AM
-  const TIMELINE_DEFAULT_END_MIN = 23 * 60;    // 11:00 PM
+  // Adjustable in Settings (Calendars tab → "Timeline hours") — these are
+  // just the defaults shown before that fetch completes, and the fallback
+  // if the setting is ever missing. Condensing to the day's usable hours
+  // (rather than auto-expanding to fit outlier events) gives everything
+  // within the range more vertical room, which is the whole point of a
+  // timeline view. Anything outside the configured window (a 2am flight,
+  // an 11:30pm event) is clamped to sit flush against the top or bottom
+  // edge instead of stretching the range to include it.
+  let TIMELINE_START_MIN = 4 * 60;   // 4:00 AM
+  let TIMELINE_END_MIN = 23 * 60;    // 11:00 PM
   const TIMELINE_MIN_HEIGHT_PCT = 3;          // floor height so short events stay legible/tappable
   const TIMELINE_HOUR_STEP = 2;               // gridlines/labels every 2 hours
 
@@ -312,11 +314,11 @@
     return (date - dayStart) / 60000;
   }
 
-  // Same fixed range for every column in the grid (not computed per-day),
+  // Same shared range for every column in the grid (not computed per-day),
   // so a given vertical position means the same time-of-day on every
   // column — that alignment is the whole point of a timeline view.
   function computeTimelineRange() {
-    return { startMin: TIMELINE_DEFAULT_START_MIN, endMin: TIMELINE_DEFAULT_END_MIN };
+    return { startMin: TIMELINE_START_MIN, endMin: TIMELINE_END_MIN };
   }
 
   function clampDate(d, min, max) { return d < min ? min : (d > max ? max : d); }
@@ -677,6 +679,11 @@
     const s = await window.HomeportTheme.fetchAllSettings();
     if (s.idle_timeout_minutes) IDLE_TIMEOUT_MS = s.idle_timeout_minutes * 60 * 1000;
     if (s.photo_interval_seconds) PHOTO_INTERVAL_MS = s.photo_interval_seconds * 1000;
+    // Plain truthy checks (like above) would wrongly skip a legitimate
+    // start hour of 0 (midnight) — these two need an explicit undefined
+    // check instead.
+    if (s.timeline_start_hour !== undefined) TIMELINE_START_MIN = s.timeline_start_hour * 60;
+    if (s.timeline_end_hour !== undefined) TIMELINE_END_MIN = s.timeline_end_hour * 60;
   }
 
   let idleTimer = null;

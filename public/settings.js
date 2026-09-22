@@ -316,6 +316,45 @@
       }
     });
 
+    document.getElementById('timelineHoursForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const start = Number(document.getElementById('timelineStartInput').value);
+      const end = Number(document.getElementById('timelineEndInput').value);
+      const msg = document.getElementById('timelineHoursMsg');
+      msg.textContent = '';
+      msg.className = 'form-msg';
+
+      if (!Number.isInteger(start) || start < 0 || start > 23) {
+        msg.textContent = 'Start hour should be a whole number between 0 and 23.';
+        msg.classList.add('error');
+        return;
+      }
+      if (!Number.isInteger(end) || end < 1 || end > 24) {
+        msg.textContent = 'End hour should be a whole number between 1 and 24.';
+        msg.classList.add('error');
+        return;
+      }
+      if (end <= start) {
+        msg.textContent = 'End hour must be after the start hour.';
+        msg.classList.add('error');
+        return;
+      }
+
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ timeline_start_hour: start, timeline_end_hour: end })
+      });
+      if (res.ok) {
+        msg.textContent = 'Saved.';
+        msg.classList.add('ok');
+      } else {
+        const body = await res.json().catch(() => ({}));
+        msg.textContent = body.error || 'Could not save.';
+        msg.classList.add('error');
+      }
+    });
+
     // -- photo upload --
     document.getElementById('photoUploadInput').addEventListener('change', async (e) => {
       const files = e.target.files;
@@ -405,6 +444,12 @@
     document.getElementById('photoIntervalInput').value = settings.photo_interval_seconds ?? 20;
   }
 
+  async function loadTimelineHoursForm() {
+    const settings = await window.HomeportTheme.fetchAllSettings();
+    document.getElementById('timelineStartInput').value = settings.timeline_start_hour ?? 4;
+    document.getElementById('timelineEndInput').value = settings.timeline_end_hour ?? 23;
+  }
+
   async function loadThemePicker() {
     const [themes, activeId] = await Promise.all([
       window.HomeportTheme.fetchThemes(),
@@ -490,6 +535,7 @@
   wire();
   window.HomeportTheme.applyActiveTheme();
   loadThemePicker();
+  loadTimelineHoursForm();
   loadCalendars();
   loadVersion();
 })();

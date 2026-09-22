@@ -182,7 +182,9 @@ function loadThemes() {
 const SETTINGS_DEFAULTS = {
   active_theme: 'default',
   idle_timeout_minutes: 10,
-  photo_interval_seconds: 20
+  photo_interval_seconds: 20,
+  timeline_start_hour: 4,
+  timeline_end_hour: 23
 };
 
 function getSetting(key) {
@@ -201,7 +203,12 @@ function getAllSettings() {
   return {
     active_theme: getSetting('active_theme') || SETTINGS_DEFAULTS.active_theme,
     idle_timeout_minutes: Number(getSetting('idle_timeout_minutes')) || SETTINGS_DEFAULTS.idle_timeout_minutes,
-    photo_interval_seconds: Number(getSetting('photo_interval_seconds')) || SETTINGS_DEFAULTS.photo_interval_seconds
+    photo_interval_seconds: Number(getSetting('photo_interval_seconds')) || SETTINGS_DEFAULTS.photo_interval_seconds,
+    // Number(...) || default would wrongly fall back to the default when
+    // the stored value is legitimately 0 (a valid start hour, midnight) —
+    // these two use a null-check instead so "0" is respected as-is.
+    timeline_start_hour: getSetting('timeline_start_hour') !== null ? Number(getSetting('timeline_start_hour')) : SETTINGS_DEFAULTS.timeline_start_hour,
+    timeline_end_hour: getSetting('timeline_end_hour') !== null ? Number(getSetting('timeline_end_hour')) : SETTINGS_DEFAULTS.timeline_end_hour
   };
 }
 
@@ -224,7 +231,7 @@ app.get('/api/settings', (req, res) => {
 });
 
 app.put('/api/settings', (req, res) => {
-  const { active_theme, idle_timeout_minutes, photo_interval_seconds } = req.body || {};
+  const { active_theme, idle_timeout_minutes, photo_interval_seconds, timeline_start_hour, timeline_end_hour } = req.body || {};
 
   if (active_theme !== undefined) {
     const themes = loadThemes();
@@ -248,6 +255,27 @@ app.put('/api/settings', (req, res) => {
       return res.status(400).json({ error: 'photo_interval_seconds must be between 3 and 600' });
     }
     setSetting('photo_interval_seconds', n);
+  }
+
+  if (timeline_start_hour !== undefined || timeline_end_hour !== undefined) {
+    // Validated as a pair — changing just one still has to result in a
+    // sane combination with whichever value isn't being changed this call.
+    const current = getAllSettings();
+    const newStart = timeline_start_hour !== undefined ? Number(timeline_start_hour) : current.timeline_start_hour;
+    const newEnd = timeline_end_hour !== undefined ? Number(timeline_end_hour) : current.timeline_end_hour;
+
+    if (!Number.isInteger(newStart) || newStart < 0 || newStart > 23) {
+      return res.status(400).json({ error: 'timeline_start_hour must be a whole number between 0 and 23' });
+    }
+    if (!Number.isInteger(newEnd) || newEnd < 1 || newEnd > 24) {
+      return res.status(400).json({ error: 'timeline_end_hour must be a whole number between 1 and 24' });
+    }
+    if (newEnd <= newStart) {
+      return res.status(400).json({ error: 'timeline_end_hour must be after timeline_start_hour' });
+    }
+
+    if (timeline_start_hour !== undefined) setSetting('timeline_start_hour', newStart);
+    if (timeline_end_hour !== undefined) setSetting('timeline_end_hour', newEnd);
   }
 
   res.json(getAllSettings());
