@@ -620,24 +620,32 @@
   }
   function goToday() { state.anchor = startOfDay(new Date()); loadEvents(); }
 
+  // Shared by the toolbar buttons and by the one-time default-view/layout
+  // application at boot (see applyDisplaySettings), so both paths keep
+  // state and the toggle buttons' active class in sync the same way.
+  function applyView(view) {
+    document.querySelectorAll('.view-toggle button').forEach((b) => b.classList.toggle('active', b.dataset.view === view));
+    state.view = view;
+  }
+  function applyLayout(layout) {
+    document.querySelectorAll('.layout-toggle button').forEach((b) => b.classList.toggle('active', b.dataset.layout === layout));
+    state.dayLayout = layout;
+  }
+
   function wire() {
     document.getElementById('navPrev').addEventListener('click', goPrev);
     document.getElementById('navNext').addEventListener('click', goNext);
     document.getElementById('navToday').addEventListener('click', goToday);
     document.querySelectorAll('.view-toggle button').forEach((btn) => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.view-toggle button').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.view = btn.dataset.view;
+        applyView(btn.dataset.view);
         render();
         loadEvents();
       });
     });
     document.querySelectorAll('.layout-toggle button').forEach((btn) => {
       btn.addEventListener('click', () => {
-        document.querySelectorAll('.layout-toggle button').forEach((b) => b.classList.remove('active'));
-        btn.classList.add('active');
-        state.dayLayout = btn.dataset.layout;
+        applyLayout(btn.dataset.layout);
         render(); // no need to re-fetch — same events, different layout
       });
     });
@@ -670,10 +678,17 @@
   // ---------- Idle timeout / photo frame ----------
 
   // Defaults; actual values are fetched from /api/settings (adjustable in
-  // Settings → Photo frame timing) via applyDisplaySettings() below, so
-  // these are only what's shown before that first fetch completes.
+  // Settings → Photo Frame timing, and View Preferences) via
+  // applyDisplaySettings() below, so these are only what's shown before
+  // that first fetch completes.
   let IDLE_TIMEOUT_MS = 10 * 60 * 1000;
   let PHOTO_INTERVAL_MS = 20 * 1000;
+
+  // Seeded from the configured default view/layout exactly once, at boot
+  // (below) — later calls to applyDisplaySettings happen on a refresh
+  // timer or when the tab wakes up, and shouldn't yank someone back to
+  // the configured default while they're mid-browse.
+  let defaultViewApplied = false;
 
   async function applyDisplaySettings() {
     const s = await window.HomeportTheme.fetchAllSettings();
@@ -684,6 +699,12 @@
     // check instead.
     if (s.timeline_start_hour !== undefined) TIMELINE_START_MIN = s.timeline_start_hour * 60;
     if (s.timeline_end_hour !== undefined) TIMELINE_END_MIN = s.timeline_end_hour * 60;
+
+    if (!defaultViewApplied) {
+      defaultViewApplied = true;
+      if (['month', 'week', '3day'].includes(s.default_view)) applyView(s.default_view);
+      if (['stacked', 'timeline'].includes(s.default_layout)) applyLayout(s.default_layout);
+    }
   }
 
   let idleTimer = null;

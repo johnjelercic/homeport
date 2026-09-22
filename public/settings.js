@@ -223,6 +223,7 @@
         btn.classList.add('active');
         const tab = btn.dataset.tab;
         document.getElementById('tabCalendars').hidden = tab !== 'calendars';
+        document.getElementById('tabViewPrefs').hidden = tab !== 'viewprefs';
         document.getElementById('tabPhotoFrame').hidden = tab !== 'photoframe';
         if (tab === 'photoframe') {
           // Deliberately not loaded until this tab is actually opened —
@@ -305,6 +306,29 @@
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ idle_timeout_minutes: idle, photo_interval_seconds: interval })
+      });
+      if (res.ok) {
+        msg.textContent = 'Saved.';
+        msg.classList.add('ok');
+      } else {
+        const body = await res.json().catch(() => ({}));
+        msg.textContent = body.error || 'Could not save.';
+        msg.classList.add('error');
+      }
+    });
+
+    document.getElementById('defaultViewForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const view = document.getElementById('defaultViewSelect').value;
+      const layout = document.getElementById('defaultLayoutSelect').value;
+      const msg = document.getElementById('defaultViewMsg');
+      msg.textContent = '';
+      msg.className = 'form-msg';
+
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ default_view: view, default_layout: layout })
       });
       if (res.ok) {
         msg.textContent = 'Saved.';
@@ -450,6 +474,12 @@
     document.getElementById('timelineEndInput').value = settings.timeline_end_hour ?? 23;
   }
 
+  async function loadDefaultViewForm() {
+    const settings = await window.HomeportTheme.fetchAllSettings();
+    document.getElementById('defaultViewSelect').value = settings.default_view ?? 'month';
+    document.getElementById('defaultLayoutSelect').value = settings.default_layout ?? 'stacked';
+  }
+
   async function loadThemePicker() {
     const [themes, activeId] = await Promise.all([
       window.HomeportTheme.fetchThemes(),
@@ -536,6 +566,7 @@
   window.HomeportTheme.applyActiveTheme();
   loadThemePicker();
   loadTimelineHoursForm();
+  loadDefaultViewForm();
   loadCalendars();
   loadVersion();
 })();

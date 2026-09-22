@@ -184,7 +184,9 @@ const SETTINGS_DEFAULTS = {
   idle_timeout_minutes: 10,
   photo_interval_seconds: 20,
   timeline_start_hour: 4,
-  timeline_end_hour: 23
+  timeline_end_hour: 23,
+  default_view: 'month',
+  default_layout: 'stacked'
 };
 
 function getSetting(key) {
@@ -208,7 +210,12 @@ function getAllSettings() {
     // the stored value is legitimately 0 (a valid start hour, midnight) —
     // these two use a null-check instead so "0" is respected as-is.
     timeline_start_hour: getSetting('timeline_start_hour') !== null ? Number(getSetting('timeline_start_hour')) : SETTINGS_DEFAULTS.timeline_start_hour,
-    timeline_end_hour: getSetting('timeline_end_hour') !== null ? Number(getSetting('timeline_end_hour')) : SETTINGS_DEFAULTS.timeline_end_hour
+    timeline_end_hour: getSetting('timeline_end_hour') !== null ? Number(getSetting('timeline_end_hour')) : SETTINGS_DEFAULTS.timeline_end_hour,
+    // The view/layout the display boots into. Per-installation — different
+    // households want different defaults — and only ever applied once at
+    // load (see applyDisplaySettings in app.js), never forced mid-browse.
+    default_view: getSetting('default_view') || SETTINGS_DEFAULTS.default_view,
+    default_layout: getSetting('default_layout') || SETTINGS_DEFAULTS.default_layout
   };
 }
 
@@ -231,7 +238,7 @@ app.get('/api/settings', (req, res) => {
 });
 
 app.put('/api/settings', (req, res) => {
-  const { active_theme, idle_timeout_minutes, photo_interval_seconds, timeline_start_hour, timeline_end_hour } = req.body || {};
+  const { active_theme, idle_timeout_minutes, photo_interval_seconds, timeline_start_hour, timeline_end_hour, default_view, default_layout } = req.body || {};
 
   if (active_theme !== undefined) {
     const themes = loadThemes();
@@ -276,6 +283,20 @@ app.put('/api/settings', (req, res) => {
 
     if (timeline_start_hour !== undefined) setSetting('timeline_start_hour', newStart);
     if (timeline_end_hour !== undefined) setSetting('timeline_end_hour', newEnd);
+  }
+
+  if (default_view !== undefined) {
+    if (!['month', 'week', '3day'].includes(default_view)) {
+      return res.status(400).json({ error: 'default_view must be one of month, week, 3day' });
+    }
+    setSetting('default_view', default_view);
+  }
+
+  if (default_layout !== undefined) {
+    if (!['stacked', 'timeline'].includes(default_layout)) {
+      return res.status(400).json({ error: 'default_layout must be one of stacked, timeline' });
+    }
+    setSetting('default_layout', default_layout);
   }
 
   res.json(getAllSettings());
