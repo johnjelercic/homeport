@@ -539,24 +539,35 @@ function isPhotoRelatedFilename(filename) {
   return PHOTO_EXTENSIONS.has(ext) || heic.isHeic(filename) || filename.endsWith(heic.CACHE_SUFFIX);
 }
 
-// Avoids clobbering an existing file that happens to share a name (e.g.
-// two different phones both producing "IMG_1234.jpg") by appending " (1)",
-// " (2)", etc. until the name is free, rather than silently overwriting.
-const { uniqueFilename, normalizeUploadedPhoto, MAX_LONG_EDGE } = images;
+const { normalizeUploadedPhoto, clearStaging, MAX_LONG_EDGE } = images;
+
+// Uploads land here first — a hidden folder inside photos/ — and only the
+// finished, resized photo is moved into photos/ itself (see
+// normalizeUploadedPhoto), so the photo frame never sees a half-uploaded
+// or not-yet-resized file. It's inside photos/ rather than somewhere like
+// /tmp so it's on the same disk, which is what makes that final move a
+// single atomic step. The photo list ignores it (a folder, not an image),
+// bulk delete skips it, and express.static refuses to serve dot-folders.
+const STAGING_DIR = path.join(PHOTOS_DIR, '.incoming');
+fs.mkdirSync(STAGING_DIR, { recursive: true });
 
 const photoUpload = multer({
   storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, PHOTOS_DIR),
-    filename: (req, file, cb) => {
-      // originalname is user-controlled — basename it to strip any path
-      // component, then drop anything that isn't a safe filename character.
-      const safeName = path.basename(file.originalname).replace(/[^\w.\- ()]/g, '_');
-      cb(null, uniqueFilename(PHOTOS_DIR, safeName));
-    }
+    destination: (req, file, cb) => cb(null, STAGING_DIR),
+    // A random staging name, so simultaneous uploads of the same filename
+    // never collide in here. The real (sanitized) name is applied when the
+    // finished photo is moved into photos/.
+    filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}`)
   }),
   limits: { fileSize: 25 * 1024 * 1024, files: 50 },
   fileFilter: (req, file, cb) => cb(null, isPhotoRelatedFilename(file.originalname))
 });
+
+// originalname is user-controlled — basename it to strip any path
+// component, then drop anything that isn't a safe filename character.
+function safeUploadName(originalname) {
+  return path.basename(originalname).replace(/[^\w.\- ()]/g, '_');
+}
 
 app.post('/api/photos/upload', (req, res) => {
   photoUpload.array('photos', 50)(req, res, async (err) => {
@@ -571,23 +582,23 @@ app.post('/api/photos/upload', (req, res) => {
       return res.status(400).json({ error: 'No valid image files were uploaded (check the file type).' });
     }
     // Resize each new photo down to MAX_LONG_EDGE (and convert HEIC to
-    // JPEG) now, while the upload is still in flight, so the photo frame
-    // only ever serves display-sized files. One photo at a time on
-    // purpose — decoding a full-size phone photo takes a couple hundred MB
-    // of RAM, and a 50-photo batch in parallel could exhaust a Pi's memory.
-    // A photo that fails to process (corrupt, unsupported variant) is kept
-    // exactly as uploaded rather than lost; it's logged and counted.
+    // JPEG) while it's still in staging, then move the finished file into
+    // photos/. One photo at a time on purpose — decoding a full-size phone
+    // photo takes a couple hundred MB of RAM, and a 50-photo batch in
+    // parallel could exhaust a Pi's memory. A photo that fails to process
+    // is moved into photos/ exactly as uploaded rather than lost.
     let resized = 0;
     let converted = 0;
     let failed = 0;
     for (const f of req.files) {
+      const name = safeUploadName(f.originalname);
       try {
-        const result = await normalizeUploadedPhoto(PHOTOS_DIR, f.filename);
+        const result = await normalizeUploadedPhoto(f.path, name, PHOTOS_DIR);
         if (result.resized) resized++;
         if (result.converted) converted++;
       } catch (e) {
         failed++;
-        console.warn(`Could not resize uploaded photo "${f.filename}": ${e.message}`);
+        console.warn(`Could not resize uploaded photo "${name}" (kept as uploaded${e.publishedAs ? ` as "${e.publishedAs}"` : ''}): ${e.message}`);
       }
     }
     res.json({ uploaded: req.files.length, resized, converted, failed, maxLongEdge: MAX_LONG_EDGE });
@@ -639,6 +650,9 @@ async function start() {
   } catch (e) {
     console.error('Initial sync failed:', e);
   }
+
+  const leftovers = clearStaging(STAGING_DIR);
+  if (leftovers) console.log(`Cleared ${leftovers} unfinished upload(s) left in photos/.incoming`);
 
   console.log('Scanning photos folder for HEIC/HEIF files to convert...');
   try {

@@ -439,6 +439,12 @@ about 1.5–3MB, which matters on a Raspberry Pi's SD card. Details:
   the pixels first, so it never comes out sideways. This is about the
   photo, not the screen — how the display is mounted is handled by the
   device's own rotation setting and the letterboxing, not here.
+- Uploads land in a hidden staging folder, `photos/.incoming/`, and are
+  resized there. Only the finished photo is moved into `photos/`, in one
+  atomic step, so the photo frame never picks up a half-uploaded or
+  not-yet-resized file. Anything left in staging by a crash or power cut
+  is cleared at the next startup. The photo list, bulk delete, and the
+  web server all ignore this folder.
 - Photos are processed one at a time, since decoding a full-size phone
   photo briefly takes a couple hundred MB of memory. A photo that can't
   be processed is kept at its original size rather than lost, and the
@@ -453,8 +459,8 @@ natively, and a kiosk display almost certainly isn't running Safari.
 
 - **Uploaded** HEIC/HEIF files are converted to a JPEG (capped at 3840px
   like everything else) with the same name — `IMG_1234.HEIC` becomes
-  `IMG_1234.jpg` — and the HEIC original is removed. No cache file
-  needed.
+  `IMG_1234.jpg`. The HEIC original never reaches `photos/`, so no
+  cache file is needed.
 - **Dropped-in** HEIC/HEIF files can't be converted the moment they
   arrive, so they're converted the first time they're needed and the
   result (also capped at 3840px) is cached right next to the original as

@@ -53,83 +53,104 @@ async function heicToJpeg(srcPath, destPath) {
   return Math.max(width, height) > MAX_LONG_EDGE;
 }
 
-// Picks a filename in `dir` that doesn't exist yet, appending " (1)",
-// " (2)", … to the base name as needed.
-function uniqueFilename(dir, originalName) {
-  const ext = path.extname(originalName);
-  const base = path.basename(originalName, ext);
-  let candidate = originalName;
-  let n = 1;
-  while (fs.existsSync(path.join(dir, candidate))) {
-    candidate = `${base} (${n})${ext}`;
-    n++;
-  }
-  return candidate;
-}
-
-// Run on every freshly uploaded photo, after multer has written it to
-// disk. Caps its long edge at MAX_LONG_EDGE, keeping its aspect ratio:
-//
-// - HEIC/HEIF: always converted (browsers other than Safari can't show
-//   HEIC) to a same-named .jpg, and the HEIC original is removed — so
-//   uploads never need a separate .converted.jpg cache file.
-// - JPEG/PNG/WebP with a long edge over the cap: scaled down in place,
-//   keeping its format (so a PNG's transparency survives). The EXIF
-//   orientation is baked into the pixels first (`.rotate()` with no
-//   angle), because sharp drops EXIF metadata on output — without this a
-//   phone photo taken upright would come out sideways.
-// - Anything already within the cap, and all GIFs (possibly animated):
-//   left completely untouched. Browsers honor EXIF orientation on their
-//   own, so an untouched photo still displays the right way up.
-//
-// Returns { file, resized, converted } — `file` is the name the photo
-// ended up under (differs from the input only for HEIC).
-async function normalizeUploadedPhoto(dir, filename) {
-  const srcPath = path.join(dir, filename);
-  const ext = path.extname(filename).toLowerCase();
-
-  if (isHeic(filename)) {
-    const jpgName = uniqueFilename(dir, path.basename(filename, path.extname(filename)) + '.jpg');
-    const jpgPath = path.join(dir, jpgName);
+// Moves a finished file from the staging folder into `destDir` under
+// `desiredName` (or "name (1).ext", "name (2).ext", … if taken), in one
+// atomic step. A hard link either appears complete or not at all — so the
+// photo list can never see a half-written file — and unlike rename it
+// fails instead of overwriting when the name is already taken, so two
+// uploads finishing at the same instant with the same filename can't
+// clobber each other. Staging lives inside the photos folder, so source
+// and destination are always on the same filesystem, which links need.
+function publishFile(srcPath, destDir, desiredName) {
+  const ext = path.extname(desiredName);
+  const base = path.basename(desiredName, ext);
+  for (let n = 0; ; n++) {
+    const candidate = n === 0 ? desiredName : `${base} (${n})${ext}`;
     try {
-      const resized = await heicToJpeg(srcPath, jpgPath);
+      fs.linkSync(srcPath, path.join(destDir, candidate));
       fs.unlinkSync(srcPath);
-      return { file: jpgName, resized, converted: true };
+      return candidate;
     } catch (e) {
-      try { fs.unlinkSync(jpgPath); } catch (_) { /* never got written */ }
-      throw e;
+      if (e.code !== 'EEXIST') throw e;
     }
   }
+}
 
-  if (ext === '.gif') return { file: filename, resized: false, converted: false };
-
-  const meta = await sharp(srcPath).metadata();
-  if (Math.max(meta.width, meta.height) <= MAX_LONG_EDGE) {
-    return { file: filename, resized: false, converted: false };
-  }
-
-  // sharp can't write over the file it's reading from, so write to a
-  // temporary name (whose extension isn't a photo type, so it's never
-  // picked up by the photo list mid-write) and swap it into place.
-  const tmpPath = srcPath + '.resizing';
+// Run on every uploaded photo while it's still in the hidden staging
+// folder (photos/.incoming/), before the photo frame can see it. Caps its
+// long edge at MAX_LONG_EDGE, keeping its aspect ratio, then publishes
+// the finished file into `destDir` as `desiredName`:
+//
+// - HEIC/HEIF: always converted (browsers other than Safari can't show
+//   HEIC) to a same-named .jpg. The HEIC original never reaches the
+//   photos folder, so uploads never need a .converted.jpg cache file.
+// - JPEG/PNG/WebP with a long edge over the cap: scaled down, keeping
+//   its format (so a PNG's transparency survives). The EXIF orientation
+//   is baked into the pixels first (`.rotate()` with no angle), because
+//   sharp drops EXIF metadata on output — without this a phone photo
+//   taken upright would come out sideways.
+// - Anything already within the cap, and all GIFs (possibly animated):
+//   published byte-for-byte as uploaded. Browsers honor EXIF orientation
+//   on their own, so an untouched photo still displays the right way up.
+// - If processing fails (corrupt file, unsupported variant), the photo
+//   is published as uploaded rather than lost, and the error rethrown
+//   with `publishedAs` set so the caller can report it.
+//
+// The staged upload is always gone from the staging folder afterwards.
+// Returns { file, resized, converted } — `file` is the final name in
+// destDir (differs from desiredName for HEIC, or on a name collision).
+async function normalizeUploadedPhoto(stagedPath, desiredName, destDir) {
+  const outPath = stagedPath + '.out';
   try {
-    let pipeline = sharp(srcPath).rotate().resize(RESIZE_OPTS);
-    if (meta.format === 'png') pipeline = pipeline.png();
-    else if (meta.format === 'webp') pipeline = pipeline.webp({ quality: JPEG_QUALITY });
-    else pipeline = pipeline.jpeg({ quality: JPEG_QUALITY });
-    await pipeline.toFile(tmpPath);
-    fs.renameSync(tmpPath, srcPath);
+    const ext = path.extname(desiredName).toLowerCase();
+
+    if (isHeic(desiredName)) {
+      const resized = await heicToJpeg(stagedPath, outPath);
+      const jpgName = path.basename(desiredName, path.extname(desiredName)) + '.jpg';
+      return { file: publishFile(outPath, destDir, jpgName), resized, converted: true };
+    }
+
+    if (ext !== '.gif') {
+      const meta = await sharp(stagedPath).metadata();
+      if (Math.max(meta.width, meta.height) > MAX_LONG_EDGE) {
+        let pipeline = sharp(stagedPath).rotate().resize(RESIZE_OPTS);
+        if (meta.format === 'png') pipeline = pipeline.png();
+        else if (meta.format === 'webp') pipeline = pipeline.webp({ quality: JPEG_QUALITY });
+        else pipeline = pipeline.jpeg({ quality: JPEG_QUALITY });
+        await pipeline.toFile(outPath);
+        return { file: publishFile(outPath, destDir, desiredName), resized: true, converted: false };
+      }
+    }
+
+    return { file: publishFile(stagedPath, destDir, desiredName), resized: false, converted: false };
   } catch (e) {
-    try { fs.unlinkSync(tmpPath); } catch (_) { /* never got written */ }
+    if (fs.existsSync(stagedPath)) {
+      try { e.publishedAs = publishFile(stagedPath, destDir, desiredName); } catch (_) { /* reported below */ }
+    }
     throw e;
+  } finally {
+    for (const leftover of [outPath, stagedPath]) {
+      try { fs.unlinkSync(leftover); } catch (_) { /* already moved or never written */ }
+    }
   }
-  return { file: filename, resized: true, converted: false };
+}
+
+// Empties the staging folder. Called once at startup, when no upload can
+// be in progress, to clear out anything a crash or power cut left behind
+// mid-upload.
+function clearStaging(stagingDir) {
+  if (!fs.existsSync(stagingDir)) return 0;
+  let removed = 0;
+  for (const f of fs.readdirSync(stagingDir)) {
+    try { fs.rmSync(path.join(stagingDir, f), { recursive: true, force: true }); removed++; } catch (_) { /* best effort */ }
+  }
+  return removed;
 }
 
 module.exports = {
   MAX_LONG_EDGE,
   isHeic,
   heicToJpeg,
-  uniqueFilename,
-  normalizeUploadedPhoto
+  normalizeUploadedPhoto,
+  clearStaging
 };
