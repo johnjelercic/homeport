@@ -285,7 +285,25 @@ color instead of the calendar's base color — everything else on that
 calendar keeps the base color. Rules apply automatically to future
 synced events too, not just what's on the calendar today.
 
-## Week / 3-Day layout: Stacked vs. Timeline
+## View Preferences
+
+Settings → View Preferences tab controls what the display looks like
+when the page loads:
+
+- **Default view** — Month, Week, or 3-Day.
+- **Default layout** — Stacked or Timeline, for Week/3-Day (see below).
+- **Timeline view hours** — the start/end hour Timeline layout uses
+  (see below).
+
+Like the theme, these are stored server-side, so every device showing
+the display starts on the same view. The toggle buttons in the header
+still work as a live, temporary override during a session — switching
+views or layouts by hand doesn't change these saved defaults, it just
+resets back to them the next time the page does a full reload (not a
+routine data refresh, which happens every few minutes without
+disturbing whatever you're currently looking at).
+
+### Stacked vs. Timeline
 
 When Week or 3-Day view is active, a second toggle appears
 (**Stacked** / **Timeline**):
@@ -305,11 +323,28 @@ When Week or 3-Day view is active, a second toggle appears
   strip above the timed area rather than being placed on the timeline.
   Today's column also shows a red line marking the current time. The
   window's start/end hour (4 AM–11 PM by default) is adjustable in
-  Settings → Calendars tab → "Timeline view hours" — including a full
-  0–24 setting for a true 24-hour view.
+  Settings → View Preferences tab → "Timeline view hours" — including a
+  full 0–24 setting for a true 24-hour view.
 
-This choice isn't persisted — it resets to Stacked on reload, the same
-way the Month/Week/3-Day selection itself does.
+## Weather
+
+A small weather widget sits next to the date/clock in the header —
+current temperature and today's forecasted high/low — once a ZIP code
+is set in Settings → Weather tab. Tap it for a popout with a 5-day
+forecast (styled like the event-location map popup below). If no ZIP
+is set, the widget stays hidden rather than showing an empty or error
+state.
+
+Data comes from the National Weather Service (`api.weather.gov`) — free
+and keyless, but US-only — plus Zippopotam.us to resolve the configured
+ZIP code to a latitude/longitude, since NWS itself only accepts
+coordinates. The server fetches and caches this the same way it already
+does for calendar syncing (refreshed every 30 minutes, and immediately
+whenever the ZIP is changed) — the browser never calls either API
+directly.
+
+Because this depends on resolving a ZIP code to a US location, it isn't
+useful outside the US — there's no non-US equivalent built in.
 
 ## Event location maps
 
@@ -333,21 +368,26 @@ important on a touchscreen where switching tabs back isn't easy.
 
 ## Idle timeout / photo frame
 
-Settings has two tabs: **Calendars** (theme, subscribed calendars —
-the default tab) and **Photo Frame** (timing and photo management,
-covered below). The Photo Frame tab's content — including the photo
-grid — is only fetched once you actually click into it, not on page
-load, so having a lot of photos never slows down opening Settings to
-do something calendar-related.
+Settings has four tabs: **Calendars** (theme, subscribed calendars —
+the default tab), **View Preferences** (default view/layout, Timeline
+hours — see above), **Photo Frame** (timing and photo management,
+covered below), and **Weather** (ZIP code for the weather widget — see
+above). The Photo Frame tab's content — including the photo grid — is
+only fetched once you actually click into it, not on page load, so
+having a lot of photos never slows down opening Settings to do
+something calendar-related.
 
 After 10 minutes (adjustable) with no touch, click, or key press, the
 display fades into a fullscreen photo frame — cycling through whatever's
 in the `photos/` folder (next to `data/`), one photo every 20 seconds
-(also adjustable), with a small clock overlaid. Any interaction (a tap
-is enough) instantly returns to the live calendar. Calendar syncing and
-theme updates keep running the whole time in the background, so the
-moment you tap back in, everything's current — it doesn't need to
-"catch up."
+(also adjustable), with a small clock overlaid. Each photo is shown in
+full, never cropped: a softly blurred, darkened copy of the same photo
+fills whatever space is left around it, so a portrait phone photo on a
+landscape display doesn't lose its top/bottom the way a hard
+fill-the-screen crop would. Any interaction (a tap is enough) instantly
+returns to the live calendar. Calendar syncing and theme updates keep
+running the whole time in the background, so the moment you tap back
+in, everything's current — it doesn't need to "catch up."
 
 **Adjusting the timing**: Settings → Photo Frame tab → "Photo frame timing" — idle
 timeout in minutes (1–180) and seconds per photo (3–600). Like the
