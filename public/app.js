@@ -14,6 +14,11 @@
     eventsByDay: new Map(),         // 'YYYY-MM-DD' -> [occurrence, ...]
   };
 
+  // The last calendar day (local) we checked the real clock against —
+  // lets us tell whether a day boundary has actually passed since the
+  // last check. See advanceAnchorPastMidnightIfNeeded() below.
+  let lastKnownToday = startOfDay(new Date());
+
   // ---------- date helpers ----------
   function startOfDay(d) { const x = new Date(d); x.setHours(0,0,0,0); return x; }
   function addDays(d, n) { const x = new Date(d); x.setDate(x.getDate() + n); return x; }
@@ -73,7 +78,28 @@
     renderLegend();
   }
 
+  // If the anchor was sitting on "today" the last time we checked, and
+  // the real day has since moved on, carry it forward to the new today.
+  // Without this, Month/Week/3-Day just keep showing whatever date they
+  // were last pointed at — most visible in 3-Day, which would otherwise
+  // sit on yesterday's 3-day window until someone manually hits "Today".
+  // An anchor the user deliberately navigated elsewhere (a specific
+  // past/future date) is left alone — that date's meaning doesn't change
+  // just because a day passed. Called from loadEvents() itself so it's
+  // covered by every path that already calls that: the periodic refresh,
+  // the scheduled midnight timer, and waking from idle/backgrounded (see
+  // refreshOnWake) — which matters because a backgrounded/asleep tab can
+  // miss the midnight timer entirely and only notice once it wakes.
+  function advanceAnchorPastMidnightIfNeeded() {
+    const today = startOfDay(new Date());
+    if (sameDay(today, lastKnownToday)) return;
+    const anchorWasToday = sameDay(state.anchor, lastKnownToday);
+    lastKnownToday = today;
+    if (anchorWasToday) state.anchor = today;
+  }
+
   async function loadEvents() {
+    advanceAnchorPastMidnightIfNeeded();
     let rangeStart, rangeEnd;
     if (state.view === 'month') {
       rangeStart = startOfMonthGrid(state.anchor);
@@ -833,7 +859,9 @@
     await loadEvents();
     setInterval(loadEvents, REFRESH_EVENTS_MS);
     setInterval(() => { loadCalendars(); applyTheme(); applyDisplaySettings(); }, REFRESH_CALENDARS_MS);
-    // Re-render the "today" highlight and header shortly after local midnight.
+    // Shortly after local midnight, re-fetch events (which also carries
+    // the anchor forward past midnight if it was pinned to "today" — see
+    // advanceAnchorPastMidnightIfNeeded) and re-render the "today" highlight.
     scheduleMidnightRefresh();
     resetIdleTimer();
   }
