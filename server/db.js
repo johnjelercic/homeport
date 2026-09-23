@@ -8,6 +8,13 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'calendar.db');
 const db = new Database(DB_PATH);
 db.pragma('journal_mode = WAL');
+// SQLite ignores FOREIGN KEY constraints per-connection unless this is set
+// explicitly — without it, the `ON DELETE CASCADE` below is just a comment,
+// not actual behavior. The calendar-delete route already deletes a
+// calendar's events manually before removing the calendar, so this is a
+// safety net for any future code path that deletes a calendar without
+// remembering to do the same.
+db.pragma('foreign_keys = ON');
 
 db.exec(`
 CREATE TABLE IF NOT EXISTS calendars (

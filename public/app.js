@@ -765,8 +765,8 @@
     });
   }
 
-  async function applyTheme() {
-    const { theme } = await window.HomeportTheme.applyActiveTheme();
+  async function applyTheme(preFetchedSettings) {
+    const { theme } = await window.HomeportTheme.applyActiveTheme(preFetchedSettings);
     const emojiEl = document.getElementById('hdrEmoji');
     emojiEl.textContent = (theme && theme.emoji) || '';
     emojiEl.hidden = !(theme && theme.emoji);
@@ -787,8 +787,8 @@
   // the configured default while they're mid-browse.
   let defaultViewApplied = false;
 
-  async function applyDisplaySettings() {
-    const s = await window.HomeportTheme.fetchAllSettings();
+  async function applyDisplaySettings(preFetchedSettings) {
+    const s = preFetchedSettings || await window.HomeportTheme.fetchAllSettings();
     if (s.idle_timeout_minutes) IDLE_TIMEOUT_MS = s.idle_timeout_minutes * 60 * 1000;
     if (s.photo_interval_seconds) PHOTO_INTERVAL_MS = s.photo_interval_seconds * 1000;
     // Plain truthy checks (like above) would wrongly skip a legitimate
@@ -802,6 +802,15 @@
       if (['month', 'week', '3day'].includes(s.default_view)) applyView(s.default_view);
       if (['stacked', 'timeline'].includes(s.default_layout)) applyLayout(s.default_layout);
     }
+  }
+
+  // applyTheme() and applyDisplaySettings() are always called together
+  // (boot, wake-from-idle, and the 10-minute poll below) but each used to
+  // fetch /api/settings independently — this fetches it once and hands the
+  // same payload to both.
+  async function refreshThemeAndDisplaySettings() {
+    const settings = await window.HomeportTheme.fetchAllSettings();
+    await Promise.all([applyTheme(settings), applyDisplaySettings(settings)]);
   }
 
   let idleTimer = null;
@@ -909,8 +918,7 @@
 
   function refreshOnWake() {
     loadEvents();
-    applyTheme();
-    applyDisplaySettings();
+    refreshThemeAndDisplaySettings();
     loadWeather();
   }
 
@@ -939,13 +947,12 @@
     setInterval(updateHeaderDate, 15 * 1000);
     setInterval(updatePfClock, 15 * 1000);
     setInterval(updateNowLine, 30 * 1000);
-    await applyTheme();
-    await applyDisplaySettings();
+    await refreshThemeAndDisplaySettings();
     await loadCalendars();
     await loadEvents();
     await loadWeather();
     setInterval(loadEvents, REFRESH_EVENTS_MS);
-    setInterval(() => { loadCalendars(); applyTheme(); applyDisplaySettings(); loadWeather(); }, REFRESH_CALENDARS_MS);
+    setInterval(() => { loadCalendars(); refreshThemeAndDisplaySettings(); loadWeather(); }, REFRESH_CALENDARS_MS);
     // Shortly after local midnight, re-fetch events (which also carries
     // the anchor forward past midnight if it was pinned to "today" — see
     // advanceAnchorPastMidnightIfNeeded) and re-render the "today" highlight.

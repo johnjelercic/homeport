@@ -10,7 +10,31 @@ const { expandEvents } = require('./expand');
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, '..', 'public')));
+
+// Photos live under public/photos — declared up here (rather than down by
+// the rest of the photo-frame routes) because the static middleware below
+// needs it to decide which requests get a longer cache lifetime.
+const PHOTOS_DIR = path.join(__dirname, '..', 'public', 'photos');
+if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
+
+app.use(express.static(path.join(__dirname, '..', 'public'), {
+  setHeaders: (res, filePath) => {
+    // Photos are user-managed content that only changes when someone
+    // uploads/deletes one — worth letting the browser cache them so the
+    // idle photo frame (cycling every few seconds, 24/7) isn't re-fetching
+    // the same image from disk on every lap. Capped at a day (not
+    // "immutable") since a HEIC's converted-cache file can legitimately be
+    // regenerated in place if the source photo is replaced.
+    // Everything else (app.js, display.css, index.html, …) is left on
+    // express.static's default ETag-based revalidation, deliberately with
+    // no long max-age — the display is a long-running page that's rarely
+    // reloaded, so a stale cached app bundle could otherwise outlive a
+    // deploy for a while.
+    if (filePath.startsWith(PHOTOS_DIR)) {
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+    }
+  }
+}));
 
 const PORT = process.env.PORT || 19156;
 const SYNC_INTERVAL_MINUTES = parseInt(process.env.SYNC_INTERVAL_MINUTES || '15', 10);
@@ -458,11 +482,9 @@ app.get('/api/weather', (req, res) => {
 });
 
 // ---------- Photo frame ----------
+// (PHOTOS_DIR itself is declared up near the static middleware, above.)
 
 const heic = require('./heic');
-
-const PHOTOS_DIR = path.join(__dirname, '..', 'public', 'photos');
-if (!fs.existsSync(PHOTOS_DIR)) fs.mkdirSync(PHOTOS_DIR, { recursive: true });
 
 const PHOTO_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 

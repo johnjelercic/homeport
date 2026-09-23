@@ -55,8 +55,16 @@
   // Fetches the current theme list + active selection, applies it to this
   // page, and returns everything so the caller (e.g. the Settings page's
   // theme picker) doesn't have to re-fetch it.
-  async function applyActiveTheme() {
-    const [themes, settings] = await Promise.all([fetchThemes(), fetchAllSettings()]);
+  //
+  // Accepts an optional already-fetched /api/settings payload — the
+  // display page calls this back-to-back with its own settings-driven
+  // setup on every refresh (boot, wake, the 10-minute poll), and there's
+  // no reason for both to hit /api/settings separately every time.
+  async function applyActiveTheme(preFetchedSettings) {
+    const [themes, settings] = await Promise.all([
+      fetchThemes(),
+      preFetchedSettings || fetchAllSettings()
+    ]);
     const activeId = settings.active_theme || 'default';
     const theme = themes.find((t) => t.id === activeId) || themes.find((t) => t.id === 'default') || themes[0];
     applyTheme(theme);
