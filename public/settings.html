@@ -18,6 +18,7 @@
     <button type="button" class="settings-tab active" data-tab="calendars">Calendars</button>
     <button type="button" class="settings-tab" data-tab="viewprefs">View Preferences</button>
     <button type="button" class="settings-tab" data-tab="photoframe">Photo Frame</button>
+    <button type="button" class="settings-tab" data-tab="weather">Weather</button>
   </div>
 
   <div class="tab-panel" id="tabCalendars">
@@ -156,6 +157,23 @@
 
     <h2 class="section-title">Your photos</h2>
     <div class="photos-grid" id="photosGrid"></div>
+  </div>
+
+  <div class="tab-panel" id="tabWeather" hidden>
+    <h2 class="section-title" style="margin-top:0;">Weather location</h2>
+    <form class="add-form timing-form" id="weatherZipForm">
+      <div class="field">
+        <label for="weatherZipInput">ZIP code</label>
+        <input type="text" id="weatherZipInput" inputmode="numeric" pattern="[0-9]{5}" maxlength="5" placeholder="e.g. 63101" />
+      </div>
+      <button type="submit" class="primary-btn">Save</button>
+      <div class="form-msg" id="weatherZipMsg"></div>
+    </form>
+    <p style="font-size:12.5px; color:var(--ink-soft); margin:14px 0 20px; line-height:1.5;">
+      Weather comes from the National Weather Service (free, no account
+      needed) and only covers US ZIP codes. Leave this blank to hide the
+      weather widget on the display.
+    </p>
   </div>
 
   <div class="app-version" id="appVersion"></div>

@@ -623,6 +623,70 @@
     return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // ---------- Weather ----------
+
+  // The full last-fetched payload from /api/weather, stashed so the
+  // popout modal has something to show without a second fetch — the
+  // small header widget and the modal are always in sync since they
+  // both come from the same loadWeather() call.
+  let latestWeather = null;
+
+  function weatherHiLoText(w) {
+    if (!w || w.todayHigh == null || w.todayLow == null) return '';
+    return `H:${w.todayHigh}° L:${w.todayLow}°`;
+  }
+
+  function renderWeatherWidget(w) {
+    const widget = document.getElementById('weatherWidget');
+    // Hidden by default (no zip configured yet, zip lookup/forecast
+    // failed, or we haven't heard back from the server yet) — the
+    // widget only appears once there's an actual current reading to show.
+    if (!w || !w.current) {
+      widget.hidden = true;
+      return;
+    }
+    widget.hidden = false;
+    document.getElementById('weatherIcon').textContent = w.current.emoji || '🌡️';
+    document.getElementById('weatherTemp').textContent = `${w.current.tempF}°`;
+    document.getElementById('weatherHiLo').textContent = weatherHiLoText(w);
+  }
+
+  async function loadWeather() {
+    try {
+      const res = await fetch('/api/weather');
+      latestWeather = await res.json();
+      renderWeatherWidget(latestWeather);
+    } catch (e) {
+      // Transient fetch failure — leave whatever was last shown rather
+      // than hiding a widget that was working a moment ago.
+    }
+  }
+
+  function openWeatherModal() {
+    if (!latestWeather || !latestWeather.current) return;
+    const w = latestWeather;
+    document.getElementById('weatherModalPlace').textContent = w.place || 'Weather';
+    document.getElementById('weatherModalCurrent').innerHTML = `
+      <span class="weather-current-emoji">${w.current.emoji || ''}</span>
+      <span class="weather-current-temp">${w.current.tempF}°</span>
+      <span class="weather-current-cond">${escapeHtml(w.current.condition || '')}</span>
+    `;
+    const list = document.getElementById('weatherModalForecast');
+    list.innerHTML = '';
+    (w.daily || []).forEach((d) => {
+      const row = document.createElement('div');
+      row.className = 'weather-day-row';
+      row.innerHTML = `
+        <span class="weather-day-label">${escapeHtml(d.label)}</span>
+        <span class="weather-day-emoji">${d.emoji || ''}</span>
+        <span class="weather-day-cond">${escapeHtml(d.condition || '')}</span>
+        <span class="weather-day-hilo">${d.hi != null ? d.hi + '°' : '—'} / ${d.lo != null ? d.lo + '°' : '—'}</span>
+      `;
+      list.appendChild(row);
+    });
+    document.getElementById('weatherModal').hidden = false;
+  }
+
   // ---------- navigation & wiring ----------
   function goPrev() {
     if (state.view === 'month') {
@@ -677,6 +741,9 @@
     });
     document.getElementById('closeEventModal').addEventListener('click', () => document.getElementById('eventModal').hidden = true);
     document.getElementById('closeDayModal').addEventListener('click', () => document.getElementById('dayModal').hidden = true);
+    document.getElementById('weatherWidget').addEventListener('click', openWeatherModal);
+    document.getElementById('closeWeatherModal').addEventListener('click', () => document.getElementById('weatherModal').hidden = true);
+    document.getElementById('weatherModal').addEventListener('click', (e) => { if (e.target.id === 'weatherModal') e.currentTarget.hidden = true; });
     document.getElementById('modalMapGoBtn').addEventListener('click', () => {
       const from = document.getElementById('modalMapFrom').value.trim();
       const destination = document.getElementById('modalMap').dataset.destination;
@@ -690,7 +757,11 @@
     document.getElementById('eventModal').addEventListener('click', (e) => { if (e.target.id === 'eventModal') e.currentTarget.hidden = true; });
     document.getElementById('dayModal').addEventListener('click', (e) => { if (e.target.id === 'dayModal') e.currentTarget.hidden = true; });
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { document.getElementById('eventModal').hidden = true; document.getElementById('dayModal').hidden = true; }
+      if (e.key === 'Escape') {
+        document.getElementById('eventModal').hidden = true;
+        document.getElementById('dayModal').hidden = true;
+        document.getElementById('weatherModal').hidden = true;
+      }
     });
   }
 
@@ -826,6 +897,7 @@
     loadEvents();
     applyTheme();
     applyDisplaySettings();
+    loadWeather();
   }
 
   function wireIdleDetection() {
@@ -857,8 +929,9 @@
     await applyDisplaySettings();
     await loadCalendars();
     await loadEvents();
+    await loadWeather();
     setInterval(loadEvents, REFRESH_EVENTS_MS);
-    setInterval(() => { loadCalendars(); applyTheme(); applyDisplaySettings(); }, REFRESH_CALENDARS_MS);
+    setInterval(() => { loadCalendars(); applyTheme(); applyDisplaySettings(); loadWeather(); }, REFRESH_CALENDARS_MS);
     // Shortly after local midnight, re-fetch events (which also carries
     // the anchor forward past midnight if it was pinned to "today" — see
     // advanceAnchorPastMidnightIfNeeded) and re-render the "today" highlight.

@@ -225,6 +225,7 @@
         document.getElementById('tabCalendars').hidden = tab !== 'calendars';
         document.getElementById('tabViewPrefs').hidden = tab !== 'viewprefs';
         document.getElementById('tabPhotoFrame').hidden = tab !== 'photoframe';
+        document.getElementById('tabWeather').hidden = tab !== 'weather';
         if (tab === 'photoframe') {
           // Deliberately not loaded until this tab is actually opened —
           // the photo grid can be a lot of images, and there's no reason
@@ -309,6 +310,39 @@
       });
       if (res.ok) {
         msg.textContent = 'Saved.';
+        msg.classList.add('ok');
+      } else {
+        const body = await res.json().catch(() => ({}));
+        msg.textContent = body.error || 'Could not save.';
+        msg.classList.add('error');
+      }
+    });
+
+    document.getElementById('weatherZipForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const zip = document.getElementById('weatherZipInput').value.trim();
+      const msg = document.getElementById('weatherZipMsg');
+      msg.textContent = '';
+      msg.className = 'form-msg';
+
+      if (zip !== '' && !/^\d{5}$/.test(zip)) {
+        msg.textContent = 'Enter a 5-digit ZIP code, or leave it blank to disable weather.';
+        msg.classList.add('error');
+        return;
+      }
+
+      // This round-trip includes the server actually resolving the ZIP
+      // and calling NWS, so it can take a couple of seconds — worth a
+      // "Saving…" state rather than looking stuck.
+      msg.textContent = 'Saving…';
+
+      const res = await fetch('/api/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weather_zip: zip })
+      });
+      if (res.ok) {
+        msg.textContent = zip ? 'Saved.' : 'Saved — weather widget hidden.';
         msg.classList.add('ok');
       } else {
         const body = await res.json().catch(() => ({}));
@@ -480,6 +514,11 @@
     document.getElementById('defaultLayoutSelect').value = settings.default_layout ?? 'stacked';
   }
 
+  async function loadWeatherZipForm() {
+    const settings = await window.HomeportTheme.fetchAllSettings();
+    document.getElementById('weatherZipInput').value = settings.weather_zip || '';
+  }
+
   async function loadThemePicker() {
     const [themes, activeId] = await Promise.all([
       window.HomeportTheme.fetchThemes(),
@@ -567,6 +606,7 @@
   loadThemePicker();
   loadTimelineHoursForm();
   loadDefaultViewForm();
+  loadWeatherZipForm();
   loadCalendars();
   loadVersion();
 })();

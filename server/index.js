@@ -14,6 +14,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 
 const PORT = process.env.PORT || 19156;
 const SYNC_INTERVAL_MINUTES = parseInt(process.env.SYNC_INTERVAL_MINUTES || '15', 10);
+const WEATHER_REFRESH_MINUTES = 30;
 
 // ---------- Calendars ----------
 
@@ -186,7 +187,8 @@ const SETTINGS_DEFAULTS = {
   timeline_start_hour: 4,
   timeline_end_hour: 23,
   default_view: 'month',
-  default_layout: 'stacked'
+  default_layout: 'stacked',
+  weather_zip: ''
 };
 
 function getSetting(key) {
@@ -215,8 +217,144 @@ function getAllSettings() {
     // households want different defaults — and only ever applied once at
     // load (see applyDisplaySettings in app.js), never forced mid-browse.
     default_view: getSetting('default_view') || SETTINGS_DEFAULTS.default_view,
-    default_layout: getSetting('default_layout') || SETTINGS_DEFAULTS.default_layout
+    default_layout: getSetting('default_layout') || SETTINGS_DEFAULTS.default_layout,
+    weather_zip: getSetting('weather_zip') || SETTINGS_DEFAULTS.weather_zip
   };
+}
+
+// ---------- Weather ----------
+//
+// Free, keyless sources only, matching the rest of this project: the
+// National Weather Service (api.weather.gov) for the forecast and
+// current conditions, and Zippopotam.us to turn a ZIP code into the
+// lat/lon NWS actually needs (NWS has no ZIP-based lookup of its own).
+// Refreshed on a timer (see start(), below) and whenever the configured
+// ZIP changes — never fetched directly by the browser, so the display
+// doesn't depend on reaching either API to render everything else.
+
+const NWS_USER_AGENT = 'Homeport self-hosted calendar (https://github.com/johnjelercic/homeport)';
+
+let weatherCache = { zip: '', place: null, current: null, todayHigh: null, todayLow: null, daily: [], fetchedAt: null, error: null };
+
+// Very small keyword match against NWS's free-text "shortForecast" (e.g.
+// "Partly Sunny", "Chance Rain Showers") — good enough for a single
+// representative emoji per period without needing an icon set of our own.
+function weatherEmoji(shortForecast) {
+  const s = (shortForecast || '').toLowerCase();
+  if (s.includes('thunder')) return '⛈️';
+  if (s.includes('snow') || s.includes('flurries') || s.includes('sleet') || s.includes('ice')) return '❄️';
+  if (s.includes('rain') || s.includes('showers') || s.includes('drizzle')) return '🌧️';
+  if (s.includes('fog') || s.includes('haze') || s.includes('mist')) return '🌫️';
+  if (s.includes('wind')) return '💨';
+  if (s.includes('partly') || s.includes('mostly cloudy') || s.includes('mostly sunny')) return '⛅';
+  if (s.includes('cloud') || s.includes('overcast')) return '☁️';
+  if (s.includes('clear') || s.includes('sunny') || s.includes('fair')) return '☀️';
+  return '🌡️';
+}
+
+async function geocodeZip(zip) {
+  const res = await fetch(`https://api.zippopotam.us/us/${encodeURIComponent(zip)}`);
+  if (!res.ok) throw new Error(`Could not look up ZIP ${zip}`);
+  const data = await res.json();
+  const place = data.places && data.places[0];
+  if (!place) throw new Error(`No location found for ZIP ${zip}`);
+  return {
+    lat: Number(place.latitude),
+    lon: Number(place.longitude),
+    label: [place['place name'], place['state abbreviation']].filter(Boolean).join(', ')
+  };
+}
+
+// Builds the 5-day list from NWS's raw period list, which alternates
+// day/night entries (e.g. "Today", "Tonight", "Wednesday", "Wednesday
+// Night", ...) — each daytime period's temperature is that day's high,
+// and the night period right after it is that night's low.
+function buildDailyForecast(periods) {
+  const daily = [];
+  for (let i = 0; i < periods.length && daily.length < 5; i++) {
+    const p = periods[i];
+    if (!p.isDaytime) continue;
+    const night = periods[i + 1] && !periods[i + 1].isDaytime ? periods[i + 1] : null;
+    daily.push({
+      label: p.name,
+      hi: p.temperature,
+      lo: night ? night.temperature : null,
+      condition: p.shortForecast,
+      emoji: weatherEmoji(p.shortForecast)
+    });
+  }
+  return daily;
+}
+
+async function refreshWeather() {
+  const zip = getSetting('weather_zip') || '';
+  if (!zip) {
+    weatherCache = { zip: '', place: null, current: null, todayHigh: null, todayLow: null, daily: [], fetchedAt: null, error: null };
+    return;
+  }
+
+  try {
+    const { lat, lon, label } = await geocodeZip(zip);
+    const headers = { 'User-Agent': NWS_USER_AGENT, 'Accept': 'application/geo+json' };
+
+    const pointsRes = await fetch(`https://api.weather.gov/points/${lat.toFixed(4)},${lon.toFixed(4)}`, { headers });
+    if (!pointsRes.ok) throw new Error(`NWS location lookup failed (${pointsRes.status})`);
+    const points = await pointsRes.json();
+    const forecastUrl = points.properties && points.properties.forecast;
+    const stationsUrl = points.properties && points.properties.observationStations;
+    if (!forecastUrl) throw new Error('NWS has no forecast for this location');
+
+    const [forecastRes, stationsRes] = await Promise.all([
+      fetch(forecastUrl, { headers }),
+      stationsUrl ? fetch(stationsUrl, { headers }) : Promise.resolve(null)
+    ]);
+    if (!forecastRes.ok) throw new Error(`NWS forecast fetch failed (${forecastRes.status})`);
+    const forecast = await forecastRes.json();
+    const daily = buildDailyForecast(forecast.properties.periods || []);
+
+    // Current conditions come from the nearest observation station, not
+    // the forecast itself (a daytime period's "temperature" is that
+    // day's forecast HIGH, not the reading right now). Best-effort: if
+    // this step fails for any reason, fall back to today's forecast
+    // high rather than showing nothing.
+    let current = null;
+    if (stationsRes && stationsRes.ok) {
+      const stations = await stationsRes.json();
+      const stationId = stations.features && stations.features[0] && stations.features[0].properties.stationIdentifier;
+      if (stationId) {
+        const obsRes = await fetch(`https://api.weather.gov/stations/${stationId}/observations/latest`, { headers });
+        if (obsRes.ok) {
+          const obs = await obsRes.json();
+          const tempC = obs.properties && obs.properties.temperature && obs.properties.temperature.value;
+          if (tempC !== null && tempC !== undefined) {
+            current = {
+              tempF: Math.round((tempC * 9) / 5 + 32),
+              condition: obs.properties.textDescription,
+              emoji: weatherEmoji(obs.properties.textDescription)
+            };
+          }
+        }
+      }
+    }
+    if (!current && daily[0]) {
+      current = { tempF: daily[0].hi, condition: daily[0].condition, emoji: daily[0].emoji };
+    }
+
+    weatherCache = {
+      zip,
+      place: label || null,
+      current,
+      todayHigh: daily[0] ? daily[0].hi : null,
+      todayLow: daily[0] ? daily[0].lo : null,
+      daily,
+      fetchedAt: new Date().toISOString(),
+      error: null
+    };
+  } catch (e) {
+    // Keep whatever we last had (so a transient outage doesn't blank the
+    // widget) but surface the failure for anyone checking Settings.
+    weatherCache = { ...weatherCache, zip, error: e.message || 'Could not fetch weather' };
+  }
 }
 
 app.get('/api/themes', (req, res) => {
@@ -237,8 +375,8 @@ app.get('/api/settings', (req, res) => {
   res.json(getAllSettings());
 });
 
-app.put('/api/settings', (req, res) => {
-  const { active_theme, idle_timeout_minutes, photo_interval_seconds, timeline_start_hour, timeline_end_hour, default_view, default_layout } = req.body || {};
+app.put('/api/settings', async (req, res) => {
+  const { active_theme, idle_timeout_minutes, photo_interval_seconds, timeline_start_hour, timeline_end_hour, default_view, default_layout, weather_zip } = req.body || {};
 
   if (active_theme !== undefined) {
     const themes = loadThemes();
@@ -299,7 +437,24 @@ app.put('/api/settings', (req, res) => {
     setSetting('default_layout', default_layout);
   }
 
+  if (weather_zip !== undefined) {
+    if (weather_zip !== '' && !/^\d{5}$/.test(weather_zip)) {
+      return res.status(400).json({ error: 'weather_zip must be a 5-digit US ZIP code, or empty to disable' });
+    }
+    setSetting('weather_zip', weather_zip);
+    // Awaited so Settings can show right away whether that ZIP actually
+    // resolved to a forecast, rather than reporting success blind.
+    await refreshWeather();
+    if (weather_zip && weatherCache.error) {
+      return res.status(400).json({ error: `Saved, but couldn't fetch weather: ${weatherCache.error}` });
+    }
+  }
+
   res.json(getAllSettings());
+});
+
+app.get('/api/weather', (req, res) => {
+  res.json(weatherCache);
 });
 
 // ---------- Photo frame ----------
@@ -470,6 +625,22 @@ async function start() {
       results.forEach((r) => {
         if (!r.ok) console.warn(`  FAILED "${r.name}": ${r.error}`);
       });
+    });
+  });
+
+  if (getSetting('weather_zip')) {
+    console.log('Fetching initial weather...');
+    try {
+      await refreshWeather();
+      if (weatherCache.error) console.warn(`  weather fetch failed: ${weatherCache.error}`);
+    } catch (e) {
+      console.error('Initial weather fetch failed:', e);
+    }
+  }
+
+  cron.schedule(`*/${WEATHER_REFRESH_MINUTES} * * * *`, () => {
+    refreshWeather().then(() => {
+      if (weatherCache.error) console.warn(`Scheduled weather refresh failed: ${weatherCache.error}`);
     });
   });
 

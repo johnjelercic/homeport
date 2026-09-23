@@ -11,30 +11,43 @@
 <div class="app">
 
   <header class="header">
-    <div class="header-date">
-      <span class="weekday" id="hdrWeekday">Monday</span>
-      <span class="monthday" id="hdrMonthDay">January 1</span>
-      <span class="clock" id="hdrClock">12:00 PM</span>
-      <span class="theme-emoji" id="hdrEmoji" hidden></span>
+    <div class="header-top">
+      <div class="header-date">
+        <span class="weekday" id="hdrWeekday">Monday</span>
+        <span class="monthday" id="hdrMonthDay">January 1</span>
+        <span class="clock" id="hdrClock">12:00 PM</span>
+        <span class="theme-emoji" id="hdrEmoji" hidden></span>
+        <button type="button" class="weather-widget" id="weatherWidget" hidden title="Weather forecast" aria-label="Weather forecast">
+          <span class="weather-icon" id="weatherIcon">🌡️</span>
+          <span class="weather-temp" id="weatherTemp">--°</span>
+          <span class="weather-hilo" id="weatherHiLo"></span>
+        </button>
+      </div>
+      <!-- Kept as one fixed cluster, always together, separate from the
+           calendar legend below — the legend grows with every subscribed
+           calendar and used to sit in this same row, shoving these
+           controls around unpredictably as it wrapped. -->
+      <div class="header-controls">
+        <div class="view-toggle">
+          <button data-view="month" class="active">Month</button>
+          <button data-view="week">Week</button>
+          <button data-view="3day">3-Day</button>
+        </div>
+        <div class="layout-toggle" id="layoutToggle" hidden>
+          <button data-layout="stacked" class="active">Stacked</button>
+          <button data-layout="timeline">Timeline</button>
+        </div>
+        <div class="nav">
+          <button id="navPrev" aria-label="Previous">‹</button>
+          <button id="navToday" class="today-btn">Today</button>
+          <button id="navNext" aria-label="Next">›</button>
+        </div>
+        <a href="/settings.html" class="settings-link" title="Settings" aria-label="Settings">⚙</a>
+      </div>
     </div>
-    <div class="header-right">
-      <div class="legend" id="legend"></div>
-      <div class="view-toggle">
-        <button data-view="month" class="active">Month</button>
-        <button data-view="week">Week</button>
-        <button data-view="3day">3-Day</button>
-      </div>
-      <div class="layout-toggle" id="layoutToggle" hidden>
-        <button data-layout="stacked" class="active">Stacked</button>
-        <button data-layout="timeline">Timeline</button>
-      </div>
-      <div class="nav">
-        <button id="navPrev" aria-label="Previous">‹</button>
-        <button id="navToday" class="today-btn">Today</button>
-        <button id="navNext" aria-label="Next">›</button>
-      </div>
-      <a href="/settings.html" class="settings-link" title="Settings" aria-label="Settings">⚙</a>
-    </div>
+    <!-- Its own full-width row — free to wrap to as many lines as needed
+         as calendars are added, without disturbing header-top above. -->
+    <div class="legend" id="legend"></div>
   </header>
 
   <div class="grid-wrap">
@@ -77,6 +90,17 @@
     <div class="modal-body">
       <h2 class="modal-title" id="dayModalTitle"></h2>
       <div class="day-list-events" id="dayModalEvents"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="weatherModal" hidden>
+  <div class="modal-card weather-modal">
+    <div class="modal-close"><button id="closeWeatherModal" aria-label="Close">✕</button></div>
+    <div class="modal-body">
+      <h2 class="modal-title" id="weatherModalPlace">Weather</h2>
+      <div class="weather-current-row" id="weatherModalCurrent"></div>
+      <div class="weather-forecast-list" id="weatherModalForecast"></div>
     </div>
   </div>
 </div>
