@@ -1,6 +1,8 @@
-FROM node:20-alpine
+# Build stage — needs python3/make/g++ to compile better-sqlite3's native
+# binding, plus the full npm cache. None of this belongs in the final
+# image; it only exists to produce node_modules.
+FROM node:20-alpine AS build
 
-# better-sqlite3 needs build tools to compile its native binding on install
 RUN apk add --no-cache python3 make g++
 
 WORKDIR /app
@@ -8,6 +10,15 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
+# Final stage — a clean base with nothing but the runtime and the already-
+# compiled node_modules copied over, so the compiler toolchain and npm's
+# download cache never ship to the NAS.
+FROM node:20-alpine
+
+WORKDIR /app
+
+COPY --from=build /app/node_modules ./node_modules
+COPY package*.json ./
 COPY server ./server
 COPY public ./public
 COPY VERSION ./VERSION
