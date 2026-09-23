@@ -56,6 +56,22 @@ body { overflow: auto; }
   border-bottom-color: var(--accent);
 }
 
+/* Phones: the four tabs at their natural width (~420px) overflow a phone
+   screen and push "Weather" off the right edge. Below 600px, split the
+   row into four equal columns that always fit, centred, wrapping a
+   two-word label like "Photo Frame" onto two lines if it has to. */
+@media (max-width: 600px) {
+  .settings-tabs { gap: 0; }
+  .settings-tab {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 4px;
+    font-size: 13px;
+    line-height: 1.25;
+    text-align: center;
+  }
+}
+
 /* No `display` set here deliberately — plain block default — so toggling
    `hidden` in JS isn't fighting a class-level display rule at equal
    specificity (a bug this app has hit more than once elsewhere). */

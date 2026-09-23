@@ -285,9 +285,9 @@ color instead of the calendar's base color — everything else on that
 calendar keeps the base color. Rules apply automatically to future
 synced events too, not just what's on the calendar today.
 
-## View Preferences
+## Layout
 
-Settings → View Preferences tab controls what the display looks like
+Settings → Layout tab controls what the display looks like
 when the page loads:
 
 - **Default view** — Month, Week, or 3-Day.
@@ -323,7 +323,7 @@ When Week or 3-Day view is active, a second toggle appears
   strip above the timed area rather than being placed on the timeline.
   Today's column also shows a red line marking the current time. The
   window's start/end hour (4 AM–11 PM by default) is adjustable in
-  Settings → View Preferences tab → "Timeline view hours" — including a
+  Settings → Layout tab → "Timeline view hours" — including a
   full 0–24 setting for a true 24-hour view.
 
 ## Weather
@@ -369,7 +369,7 @@ important on a touchscreen where switching tabs back isn't easy.
 ## Idle timeout / photo frame
 
 Settings has four tabs: **Calendars** (theme, subscribed calendars —
-the default tab), **View Preferences** (default view/layout, Timeline
+the default tab), **Layout** (default view/layout, Timeline
 hours — see above), **Photo Frame** (timing and photo management,
 covered below), and **Weather** (ZIP code for the weather widget — see
 above). The Photo Frame tab's content — including the photo grid — is

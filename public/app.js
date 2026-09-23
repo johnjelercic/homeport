@@ -775,7 +775,7 @@
   // ---------- Idle timeout / photo frame ----------
 
   // Defaults; actual values are fetched from /api/settings (adjustable in
-  // Settings → Photo Frame timing, and View Preferences) via
+  // Settings → Photo Frame timing, and Layout) via
   // applyDisplaySettings() below, so these are only what's shown before
   // that first fetch completes.
   let IDLE_TIMEOUT_MS = 10 * 60 * 1000;
