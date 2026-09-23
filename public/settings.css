@@ -432,11 +432,19 @@ h2.section-title {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 14px;
+  margin-bottom: 6px;
+}
+
+.upload-hint {
+  margin: 0 0 14px;
+  font-size: 12px;
+  color: var(--ink-soft);
 }
 
 .upload-btn {
   display: inline-block;
+  flex: none;
+  white-space: nowrap;
   background: var(--ink);
   color: var(--surface);
   border-radius: 8px;
@@ -446,6 +454,8 @@ h2.section-title {
   cursor: pointer;
 }
 .upload-btn:hover { opacity: 0.9; }
+/* Disabled while a multi-batch upload is in progress. */
+.upload-btn:has(input:disabled) { opacity: 0.5; pointer-events: none; }
 
 .photos-grid {
   display: grid;

@@ -414,37 +414,84 @@
     });
 
     // -- photo upload --
+    // Large selections are sent in small batches, one after another, rather
+    // than as one giant request: the server resizes every photo in a batch
+    // before answering, so small batches mean steady progress on screen, a
+    // small staging footprint on the Pi's SD card, and a network hiccup
+    // only costs one batch instead of the whole upload.
+    const UPLOAD_MAX_FILES = 100;   // per selection — matches the hint under the button
+    const UPLOAD_BATCH_SIZE = 10;
+    const UPLOAD_MAX_BYTES = 25 * 1024 * 1024; // server's per-file limit
+
     document.getElementById('photoUploadInput').addEventListener('change', async (e) => {
-      const files = e.target.files;
-      if (!files || files.length === 0) return;
+      const input = e.target;
+      const selected = Array.from(input.files || []);
+      input.value = ''; // reset so selecting the same file(s) again still triggers change
+      if (selected.length === 0) return;
+
       const statusEl = document.getElementById('uploadStatus');
-      statusEl.textContent = `Uploading ${files.length} photo${files.length > 1 ? 's' : ''}…`;
-      statusEl.className = 'form-msg';
+      const setStatus = (text, kind) => {
+        statusEl.textContent = text;
+        statusEl.className = 'form-msg' + (kind ? ' ' + kind : '');
+      };
+      const plural = (n, word) => `${n} ${word}${n !== 1 ? 's' : ''}`;
 
-      const formData = new FormData();
-      for (const f of files) formData.append('photos', f);
-
-      try {
-        const res = await fetch('/api/photos/upload', { method: 'POST', body: formData });
-        const body = await res.json().catch(() => ({}));
-        if (res.ok) {
-          const notes = [];
-          if (body.resized) notes.push(`${body.resized} resized to fit ${body.maxLongEdge}px`);
-          if (body.converted) notes.push(`${body.converted} HEIC converted to JPEG`);
-          if (body.failed) notes.push(`${body.failed} kept at original size — couldn't be processed`);
-          const noteText = notes.length ? ` (${notes.join(', ')})` : '';
-          statusEl.textContent = `Uploaded ${body.uploaded} photo${body.uploaded !== 1 ? 's' : ''}${noteText}.`;
-          statusEl.classList.add('ok');
-          loadPhotosGrid();
-        } else {
-          statusEl.textContent = body.error || 'Upload failed.';
-          statusEl.classList.add('error');
-        }
-      } catch (err) {
-        statusEl.textContent = 'Upload failed — check your connection.';
-        statusEl.classList.add('error');
+      if (selected.length > UPLOAD_MAX_FILES) {
+        setStatus(`${selected.length} photos selected — please choose ${UPLOAD_MAX_FILES} or fewer at a time.`, 'error');
+        return;
       }
-      e.target.value = ''; // reset so selecting the same file(s) again still triggers change
+
+      // Checked here so one oversized file can't make the server reject
+      // the whole batch it's in.
+      const files = selected.filter((f) => f.size <= UPLOAD_MAX_BYTES);
+      const tooLarge = selected.length - files.length;
+      if (files.length === 0) {
+        setStatus(`${tooLarge === 1 ? 'That file is' : 'Those files are'} over the 25 MB limit.`, 'error');
+        return;
+      }
+
+      input.disabled = true; // no second upload starting mid-batch
+      const totals = { uploaded: 0, resized: 0, converted: 0, failed: 0 };
+      let maxLongEdge = null;
+      let errorText = null;
+
+      for (let i = 0; i < files.length; i += UPLOAD_BATCH_SIZE) {
+        const batch = files.slice(i, i + UPLOAD_BATCH_SIZE);
+        setStatus(files.length > UPLOAD_BATCH_SIZE
+          ? `Uploading ${i + 1}–${i + batch.length} of ${files.length}…`
+          : `Uploading ${plural(files.length, 'photo')}…`);
+
+        const formData = new FormData();
+        for (const f of batch) formData.append('photos', f);
+        try {
+          const res = await fetch('/api/photos/upload', { method: 'POST', body: formData });
+          const body = await res.json().catch(() => ({}));
+          if (!res.ok) { errorText = body.error || 'Upload failed.'; break; }
+          for (const k of Object.keys(totals)) totals[k] += body[k] || 0;
+          maxLongEdge = body.maxLongEdge || maxLongEdge;
+          loadPhotosGrid(); // show each batch as it lands
+        } catch (err) {
+          errorText = 'Upload failed — check your connection.';
+          break;
+        }
+      }
+      input.disabled = false;
+
+      const notes = [];
+      if (totals.resized) notes.push(`${totals.resized} resized to fit ${maxLongEdge}px`);
+      if (totals.converted) notes.push(`${totals.converted} HEIC converted to JPEG`);
+      if (totals.failed) notes.push(`${totals.failed} kept at original size — couldn't be processed`);
+      if (tooLarge) notes.push(`${plural(tooLarge, 'file')} skipped — over 25 MB`);
+      const noteText = notes.length ? ` (${notes.join(', ')})` : '';
+
+      if (errorText) {
+        const done = totals.uploaded
+          ? `Uploaded ${totals.uploaded} of ${files.length}${noteText}, then stopped: `
+          : '';
+        setStatus(done + errorText, 'error');
+      } else {
+        setStatus(`Uploaded ${plural(totals.uploaded, 'photo')}${noteText}.`, tooLarge ? 'error' : 'ok');
+      }
     });
 
     // -- delete all photos: three deliberate steps (reveal panel, check

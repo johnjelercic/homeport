@@ -551,6 +551,9 @@ const { normalizeUploadedPhoto, clearStaging, MAX_LONG_EDGE } = images;
 const STAGING_DIR = path.join(PHOTOS_DIR, '.incoming');
 fs.mkdirSync(STAGING_DIR, { recursive: true });
 
+// Per-request cap. The Settings page sends selections of up to 100 photos
+// as batches of 10 (see settings.js), so this only needs to be a sane
+// ceiling for a single request, not the user-facing limit.
 const photoUpload = multer({
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, STAGING_DIR),
@@ -559,7 +562,7 @@ const photoUpload = multer({
     // finished photo is moved into photos/.
     filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2)}`)
   }),
-  limits: { fileSize: 25 * 1024 * 1024, files: 50 },
+  limits: { fileSize: 25 * 1024 * 1024, files: 20 },
   fileFilter: (req, file, cb) => cb(null, isPhotoRelatedFilename(file.originalname))
 });
 
@@ -570,11 +573,11 @@ function safeUploadName(originalname) {
 }
 
 app.post('/api/photos/upload', (req, res) => {
-  photoUpload.array('photos', 50)(req, res, async (err) => {
+  photoUpload.array('photos', 20)(req, res, async (err) => {
     if (err) {
       const message =
         err.code === 'LIMIT_FILE_SIZE' ? 'One or more files are over the 25 MB limit.' :
-        err.code === 'LIMIT_FILE_COUNT' ? 'Too many files at once (50 max per upload).' :
+        err.code === 'LIMIT_FILE_COUNT' ? 'Too many files in one request (20 max).' :
         'Upload failed.';
       return res.status(400).json({ error: message });
     }

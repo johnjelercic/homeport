@@ -409,7 +409,11 @@ File Station works exactly the same way it always has — the upload
 button is just a more convenient way to do the same thing from a phone
 or laptop without needing NAS file-browser access. A file with the same
 name as an existing one is automatically renamed rather than overwriting
-it, and only recognized image types are accepted either way.
+it, and only recognized image types are accepted either way. Up to 100
+photos can be picked at once (25 MB max each); the page sends them to the
+server in batches of 10 and shows progress as each batch is resized, so
+a big selection never sits on a silent "Uploading…" and a network hiccup
+only costs one batch.
 
 **Deleting all photos at once**: the same "Photos" section (Photo Frame
 tab) in Settings
