@@ -855,16 +855,44 @@
 }
 .photo-frame[hidden] { display: none; }
 
+/* Each slot is a full-bleed layer holding both a blurred backdrop and the
+   sharp photo on top; the slot itself is what crossfades in/out between
+   photos, so the backdrop and foreground always appear/disappear together. */
+.pf-slot {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+}
+.pf-slot.active { opacity: 1; }
+
+/* Scaled up and heavily blurred so it fills any leftover space around a
+   photo whose aspect ratio doesn't match the screen (portrait shots,
+   panoramas, etc.) without hard-cropping the photo itself — the blur's own
+   soft edges are covered by the extra scale so no seam shows. Darkened and
+   slightly desaturated so it reads as a backdrop, not a second competing
+   image. */
+.pf-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transform: scale(1.15);
+  filter: blur(48px) brightness(0.55) saturate(1.15);
+}
+
+/* object-fit: contain (not cover) is the actual fix — the whole photo
+   always shows, letterboxed by the blurred backdrop above instead of
+   being cropped to fill the screen. */
 .pf-img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 1.8s ease;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 40px rgba(0,0,0,0.55));
 }
-.pf-img.active { opacity: 1; }
 
 .pf-clock {
   position: absolute;

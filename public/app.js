@@ -808,7 +808,7 @@
   let photoCycleTimer = null;
   let photoList = [];
   let photoIndex = 0;
-  let activePfImgId = 'pfImgA';
+  let activePfSuffix = 'A';
 
   function resetIdleTimer() {
     if (idleTimer) clearTimeout(idleTimer);
@@ -838,34 +838,45 @@
     }
     shufflePhotos(photoList);
     photoIndex = 0;
-    activePfImgId = 'pfImgA';
+    activePfSuffix = 'A';
 
     document.getElementById('photoFrame').hidden = false;
     updatePfClock();
 
-    const imgA = document.getElementById('pfImgA');
-    document.getElementById('pfImgB').classList.remove('active');
-    imgA.classList.remove('active');
-    imgA.onload = () => requestAnimationFrame(() => imgA.classList.add('active'));
-    imgA.src = photoList[0].url;
+    document.getElementById('pfSlotA').classList.remove('active');
+    document.getElementById('pfSlotB').classList.remove('active');
+    showPhotoInSlot('A', photoList[0].url, () => {
+      document.getElementById('pfSlotA').classList.add('active');
+    });
 
     photoCycleTimer = setInterval(advancePhoto, PHOTO_INTERVAL_MS);
+  }
+
+  // Loads a photo into the given slot ('A' or 'B') — both the sharp,
+  // letterboxed foreground image and the blurred, scaled-up backdrop that
+  // fills whatever space is left around it — and calls back once the
+  // foreground image has actually finished loading, so callers never
+  // reveal a slot mid-decode.
+  function showPhotoInSlot(suffix, url, onReady) {
+    const img = document.getElementById('pfImg' + suffix);
+    const bg = document.getElementById('pfBg' + suffix);
+    bg.style.backgroundImage = `url("${url}")`;
+    img.onload = onReady;
+    img.src = url;
   }
 
   function advancePhoto() {
     if (!photoList.length) return;
     photoIndex = (photoIndex + 1) % photoList.length;
-    const nextId = activePfImgId === 'pfImgA' ? 'pfImgB' : 'pfImgA';
-    const prevId = activePfImgId;
-    const nextImg = document.getElementById(nextId);
+    const nextSuffix = activePfSuffix === 'A' ? 'B' : 'A';
+    const prevSuffix = activePfSuffix;
     // Wait for the image to actually load before crossfading in, so a slow
     // decode never shows as a flash of black.
-    nextImg.onload = () => {
-      nextImg.classList.add('active');
-      document.getElementById(prevId).classList.remove('active');
-      activePfImgId = nextId;
-    };
-    nextImg.src = photoList[photoIndex].url;
+    showPhotoInSlot(nextSuffix, photoList[photoIndex].url, () => {
+      document.getElementById('pfSlot' + nextSuffix).classList.add('active');
+      document.getElementById('pfSlot' + prevSuffix).classList.remove('active');
+      activePfSuffix = nextSuffix;
+    });
     updatePfClock();
   }
 
@@ -878,11 +889,14 @@
     if (frame.hidden) return;
     frame.hidden = true;
     if (photoCycleTimer) { clearInterval(photoCycleTimer); photoCycleTimer = null; }
-    ['pfImgA', 'pfImgB'].forEach((id) => {
-      const img = document.getElementById(id);
-      img.classList.remove('active');
+    ['A', 'B'].forEach((suffix) => {
+      const slot = document.getElementById('pfSlot' + suffix);
+      const img = document.getElementById('pfImg' + suffix);
+      const bg = document.getElementById('pfBg' + suffix);
+      slot.classList.remove('active');
       img.onload = null;
       img.src = '';
+      bg.style.backgroundImage = '';
     });
     // Force an immediate refresh rather than waiting for the next scheduled
     // interval — those can be throttled or fully suspended by the OS/browser
