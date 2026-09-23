@@ -428,8 +428,12 @@
         const res = await fetch('/api/photos/upload', { method: 'POST', body: formData });
         const body = await res.json().catch(() => ({}));
         if (res.ok) {
-          const convertedNote = body.converted ? ` (converted ${body.converted} HEIC file${body.converted !== 1 ? 's' : ''})` : '';
-          statusEl.textContent = `Uploaded ${body.uploaded} photo${body.uploaded !== 1 ? 's' : ''}${convertedNote}.`;
+          const notes = [];
+          if (body.resized) notes.push(`${body.resized} resized to fit ${body.maxLongEdge}px`);
+          if (body.converted) notes.push(`${body.converted} HEIC converted to JPEG`);
+          if (body.failed) notes.push(`${body.failed} kept at original size — couldn't be processed`);
+          const noteText = notes.length ? ` (${notes.join(', ')})` : '';
+          statusEl.textContent = `Uploaded ${body.uploaded} photo${body.uploaded !== 1 ? 's' : ''}${noteText}.`;
           statusEl.classList.add('ok');
           loadPhotosGrid();
         } else {

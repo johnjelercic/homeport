@@ -10,13 +10,14 @@
   "dependencies": {
     "better-sqlite3": "^11.3.0",
     "express": "^4.22.3",
-    "heic-convert": "^2.1.0",
+    "heic-decode": "^2.1.0",
     "multer": "^2.4.0",
     "node-cron": "^4.6.0",
     "node-ical": "^0.21.0",
-    "rrule": "^2.8.1"
+    "rrule": "^2.8.1",
+    "sharp": "^0.35.4"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=20.9"
   }
 }

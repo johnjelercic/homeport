@@ -485,6 +485,7 @@ app.get('/api/weather', (req, res) => {
 // (PHOTOS_DIR itself is declared up near the static middleware, above.)
 
 const heic = require('./heic');
+const images = require('./images');
 
 const PHOTO_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
 
@@ -541,17 +542,7 @@ function isPhotoRelatedFilename(filename) {
 // Avoids clobbering an existing file that happens to share a name (e.g.
 // two different phones both producing "IMG_1234.jpg") by appending " (1)",
 // " (2)", etc. until the name is free, rather than silently overwriting.
-function uniqueFilename(dir, originalName) {
-  const ext = path.extname(originalName);
-  const base = path.basename(originalName, ext);
-  let candidate = originalName;
-  let n = 1;
-  while (fs.existsSync(path.join(dir, candidate))) {
-    candidate = `${base} (${n})${ext}`;
-    n++;
-  }
-  return candidate;
-}
+const { uniqueFilename, normalizeUploadedPhoto, MAX_LONG_EDGE } = images;
 
 const photoUpload = multer({
   storage: multer.diskStorage({
@@ -579,10 +570,27 @@ app.post('/api/photos/upload', (req, res) => {
     if (!req.files || req.files.length === 0) {
       return res.status(400).json({ error: 'No valid image files were uploaded (check the file type).' });
     }
-    // Convert any newly-uploaded HEIC files right away rather than waiting
-    // for the display's next idle cycle to ask for them.
-    const { converted } = await listPhotos();
-    res.json({ uploaded: req.files.length, converted });
+    // Resize each new photo down to MAX_LONG_EDGE (and convert HEIC to
+    // JPEG) now, while the upload is still in flight, so the photo frame
+    // only ever serves display-sized files. One photo at a time on
+    // purpose — decoding a full-size phone photo takes a couple hundred MB
+    // of RAM, and a 50-photo batch in parallel could exhaust a Pi's memory.
+    // A photo that fails to process (corrupt, unsupported variant) is kept
+    // exactly as uploaded rather than lost; it's logged and counted.
+    let resized = 0;
+    let converted = 0;
+    let failed = 0;
+    for (const f of req.files) {
+      try {
+        const result = await normalizeUploadedPhoto(PHOTOS_DIR, f.filename);
+        if (result.resized) resized++;
+        if (result.converted) converted++;
+      } catch (e) {
+        failed++;
+        console.warn(`Could not resize uploaded photo "${f.filename}": ${e.message}`);
+      }
+    }
+    res.json({ uploaded: req.files.length, resized, converted, failed, maxLongEdge: MAX_LONG_EDGE });
   });
 });
 

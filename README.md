@@ -421,22 +421,48 @@ separate, deliberate actions before anything is destroyed. This only
 ever removes photo files (and their HEIC conversion caches) — it never
 touches `README.txt` or anything else that might be in that folder.
 
+**Photo sizing on upload**: every photo uploaded through Settings is
+scaled down so its long edge is at most **3840px**, keeping its aspect
+ratio. That's enough to fill a 4K display with no upscaling in either
+orientation (a landscape 3840×2160 screen, or one mounted vertically at
+2160×3840), since the photo frame letterboxes each photo to fit rather
+than cropping it. A 24–48MP phone photo drops from roughly 5–10MB to
+about 1.5–3MB, which matters on a Raspberry Pi's SD card. Details:
+
+- A photo whose long edge is already 3840px or less is left completely
+  untouched, never enlarged. GIFs are always left alone (they may be
+  animated).
+- JPEG stays JPEG, PNG stays PNG (so transparency survives), WebP stays
+  WebP.
+- When a phone photo is resized, its EXIF orientation (the "rotate this
+  90°" note phones attach instead of rotating the pixels) is applied to
+  the pixels first, so it never comes out sideways. This is about the
+  photo, not the screen — how the display is mounted is handled by the
+  device's own rotation setting and the letterboxing, not here.
+- Photos are processed one at a time, since decoding a full-size phone
+  photo briefly takes a couple hundred MB of memory. A photo that can't
+  be processed is kept at its original size rather than lost, and the
+  upload status says so.
+
+Only uploads are resized. Files dropped directly into `photos/` (File
+Station, `scp`, …) are left as they are, apart from HEIC below.
+
 **HEIC/HEIF** (the default format on iPhones) needs a conversion step
 most browsers can't do themselves — only Safari can display HEIC
-natively, and a kiosk display almost certainly isn't running Safari. So
-HEIC/HEIF files are converted to JPEG at maximum quality, and the result
-is cached right next to the original as `<filename>.converted.jpg` —
-that conversion (a few hundred ms to a couple seconds per photo,
-depending on size) only happens once per photo, not on every rotation.
-This runs once at server startup for whatever's already in the folder
-(alongside the initial calendar sync, in the boot log), once immediately
-after an upload finishes, and again on-demand for anything added
-directly via File Station, the first time the display asks for the
-photo list — so nothing needs to wait for the display to go idle before
-its photos are ready, and a photo added later
-does convert lazily rather than needing a restart. If you later delete
-the original HEIC file, its cached JPEG is cleaned up automatically the
-next time the photo list loads — you only need to delete the one file.
+natively, and a kiosk display almost certainly isn't running Safari.
+
+- **Uploaded** HEIC/HEIF files are converted to a JPEG (capped at 3840px
+  like everything else) with the same name — `IMG_1234.HEIC` becomes
+  `IMG_1234.jpg` — and the HEIC original is removed. No cache file
+  needed.
+- **Dropped-in** HEIC/HEIF files can't be converted the moment they
+  arrive, so they're converted the first time they're needed and the
+  result (also capped at 3840px) is cached right next to the original as
+  `<filename>.converted.jpg`. That happens once at server startup for
+  whatever's already in the folder, and on demand the first time the
+  display asks for the photo list after a new one appears. If you later
+  delete the original HEIC file, its cached JPEG is cleaned up
+  automatically the next time the photo list loads.
 
 If nothing's in the folder yet, the display just stays on the calendar
 indefinitely rather than showing a blank screen — the photo frame only
@@ -464,7 +490,8 @@ server/
   db.js      SQLite schema
   sync.js    Fetches & parses ICS feeds into the database
   expand.js  Expands recurring events into concrete occurrences
-  heic.js    Converts HEIC/HEIF photos to JPEG, with disk caching
+  images.js  Resizes uploaded photos to a 3840px long edge; HEIC→JPEG
+  heic.js    Cached HEIC→JPEG conversion for files dropped into photos/
 public/
   index.html, app.js, display.css   The kiosk display
   settings.html, settings.js, settings.css  Calendar & theme management
