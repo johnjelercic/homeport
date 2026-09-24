@@ -363,26 +363,45 @@
 
       <ellipse cx="55" cy="300" rx="95" ry="150" fill="url(#catGlow)"/>
 
-      <!-- black cat — moved up and further into the true corner (was
-           sitting low enough to peek out right next to the footer's date
-           range text, and mostly hidden under the grid). Now it clears
-           the footer row and sits in the same visible gutter band as the
-           pumpkins. -->
-      <g transform="translate(-45,-50)">
-        <path d="M116,334 C 126,320 123,300 108,291 C 119,297 126,312 121,329 Z" fill="#17151C"/>
-        <path d="M96,398 C 84,398 77,382 81,362 C 85,343 100,331 116,331
-                 C 129,331 131,346 126,357 C 122,350 111,346 103,352
-                 C 95,358 93,371 97,383 C 100,391 100,396 96,398 Z"
+      <!-- black cat — a clean side-profile silhouette (sitting, facing
+           toward the calendar), rebuilt from scratch: the previous version
+           mixed a front-facing head (two eyes, symmetric whiskers) with a
+           rear/haunch-shaped body, which read as the cat's rear facing the
+           viewer with its head twisted back. Now it's one consistent pose:
+           rounded haunch at the back, arched body to the chest, a profile
+           head with a single visible eye/ear, and whiskers only on the
+           side the face actually points toward. -->
+      <g transform="translate(30,259)">
+        <!-- tail, curling up from the rear -->
+        <path d="M14,58 C0,54 -8,40 -2,26 C4,14 18,10 28,16
+                 C18,16 8,22 6,32 C4,42 10,50 20,54 Z"
               fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-        <circle cx="90" cy="325" r="19" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-        <path d="M76,313 L72,296 L87,309 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-        <path d="M100,311 L109,295 L111,313 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-        <ellipse cx="84" cy="324" rx="3" ry="4.5" fill="#C8E36B"/>
-        <ellipse cx="97" cy="323" rx="3" ry="4.5" fill="#C8E36B"/>
-        <path d="M89,330 L93,330 L91,333 Z" fill="#C46B7A"/>
+
+        <!-- body: haunch (rear) arching up over the back, down the chest
+             and front leg, along the ground back to the haunch -->
+        <path d="M14,34 C6,38 2,48 4,58 C5,66 8,72 12,76
+                 C10,80 10,84 14,86
+                 L52,86
+                 C52,74 51,64 50,60
+                 C48,50 46,42 40,36
+                 C32,26 22,26 14,34 Z"
+              fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+
+        <!-- head: profile wedge with a snout, attached right at the neck -->
+        <path d="M40,36 C38,26 42,16 52,12 C62,8 70,12 74,20
+                 C76,24 75,28 72,29 C73,32 72,35 68,37
+                 C60,41 48,40 42,35 Z"
+              fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+
+        <!-- one ear -->
+        <path d="M50,14 L48,2 L60,10 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+
+        <!-- one eye, in profile -->
+        <ellipse cx="60" cy="21" rx="3" ry="4" transform="rotate(-15 60 21)" fill="#C8E36B"/>
+
+        <!-- whiskers, only from the side the face is turned toward -->
         <g stroke="#5A5765" stroke-width="0.8" opacity=".7">
-          <path d="M78,329 L64,326 M78,332 L64,333"/>
-          <path d="M102,329 L114,326 M102,331 L114,332"/>
+          <path d="M72,24 L86,20 M73,27 L87,26 M72,30 L85,32"/>
         </g>
       </g>
 
