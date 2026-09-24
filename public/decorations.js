@@ -242,18 +242,15 @@
           <stop offset="0%" stop-color="#557195"/>
           <stop offset="100%" stop-color="#37516F"/>
         </linearGradient>
-        <!-- one straw spike, reused via <use> at different rotations to
-             build every straw burst (hair, hands, ankles) -->
         <path id="strawSpike" d="M0,0 C-3,-8 -2,-16 0,-24 C2,-16 3,-8 0,0 Z"/>
       </defs>
 
       <ellipse cx="52" cy="300" rx="100" ry="150" fill="url(#scarecrowGlow)"/>
 
-      <!-- legs (jeans), standing slightly apart, with a patch -->
+      <!-- legs (jeans) -->
       <path d="M26,256 C22,292 18,332 24,378 C30,384 38,384 42,378 C42,332 44,292 44,256 Z" fill="url(#jeansGrad)" stroke="#233245" stroke-width="2"/>
       <path d="M50,256 C50,292 50,332 50,378 C54,384 62,384 68,378 C74,332 70,292 70,256 Z" fill="url(#jeansGrad)" stroke="#233245" stroke-width="2"/>
       <rect x="52" y="330" width="14" height="16" rx="2" fill="#7A2E20" opacity=".85" transform="rotate(-6 59 338)"/>
-      <!-- ankle straw bursts -->
       <g fill="#E3B54F">
         <g transform="translate(32,378)">
           <use href="#strawSpike" transform="rotate(150)"/><use href="#strawSpike" transform="rotate(165)"/>
@@ -267,7 +264,7 @@
         </g>
       </g>
 
-      <!-- arms, reaching out and slightly up, ending in straw-burst hands -->
+      <!-- arms -->
       <path d="M28,190 C10,186 -8,180 -22,182 C-24,190 -22,198 -14,200 C0,202 16,198 30,204 Z" fill="url(#vestGrad)" stroke="#1E2733" stroke-width="2"/>
       <path d="M62,190 C80,186 98,180 112,182 C114,190 112,198 104,200 C90,202 74,198 60,204 Z" fill="url(#vestGrad)" stroke="#1E2733" stroke-width="2"/>
       <g fill="#E3B54F">
@@ -283,11 +280,11 @@
         </g>
       </g>
 
-      <!-- plaid shirt sleeves peeking above the vest at the shoulders -->
+      <!-- plaid shirt sleeves -->
       <path d="M22,178 C14,180 8,186 8,194 L30,198 L34,180 Z" fill="#A6453A" stroke="#6B2E20" stroke-width="1.5"/>
       <path d="M68,178 C76,180 82,186 82,194 L60,198 L56,180 Z" fill="#A6453A" stroke="#6B2E20" stroke-width="1.5"/>
 
-      <!-- vest with buttons and colorful patches, over the torso -->
+      <!-- vest -->
       <path d="M24,182 C24,168 66,168 66,182 L70,254 C70,266 20,266 20,254 Z" fill="url(#vestGrad)" stroke="#1E2733" stroke-width="2"/>
       <circle cx="45" cy="200" r="2.2" fill="#D9BC7E"/>
       <circle cx="45" cy="216" r="2.2" fill="#D9BC7E"/>
@@ -297,43 +294,51 @@
       <rect x="24" y="228" width="12" height="11" rx="2" fill="#5E8C4B" transform="rotate(6 30 233)"/>
       <rect x="53" y="232" width="12" height="12" rx="2" fill="#B5432F" transform="rotate(-7 59 238)"/>
 
+      <!-- neck: a dedicated skin-tone patch that always bridges the head
+           to the collar, regardless of how the curves round on either
+           side — this is what fixes the "head floating above the
+           shoulders" look. -->
+      <rect x="35" y="163" width="20" height="22" rx="7" fill="url(#faceGrad)"/>
+
       <!-- ruffled bandana collar at the neck -->
       <path d="M20,180 C20,172 70,172 70,180 C70,186 64,182 58,186 C52,190 48,184 45,184
                C42,184 38,190 32,186 C26,182 20,186 20,180 Z" fill="#E8A23D" stroke="#B5732A" stroke-width="1.5"/>
 
-      <!-- head -->
-      <circle cx="45" cy="142" r="29" fill="url(#faceGrad)" stroke="#C7A263" stroke-width="2"/>
-      <circle cx="35" cy="136" r="3" fill="#3A2E1C"/>
-      <circle cx="55" cy="136" r="3" fill="#3A2E1C"/>
-      <path d="M45,144 L40,154 L50,154 Z" fill="#D9791E"/>
-      <ellipse cx="30" cy="152" rx="5" ry="3.2" fill="#EFA3A0" opacity=".65"/>
-      <ellipse cx="60" cy="152" rx="5" ry="3.2" fill="#EFA3A0" opacity=".65"/>
-      <path d="M31,160 Q45,170 59,160" stroke="#3A2E1C" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+      <!-- head — a touch smaller and sitting lower, right down on the
+           neck patch, so there's no gap to the shoulders -->
+      <circle cx="45" cy="150" r="26" fill="url(#faceGrad)" stroke="#C7A263" stroke-width="2"/>
+      <circle cx="36" cy="144" r="2.8" fill="#3A2E1C"/>
+      <circle cx="54" cy="144" r="2.8" fill="#3A2E1C"/>
+      <path d="M45,152 L40,161 L50,161 Z" fill="#D9791E"/>
+      <ellipse cx="31" cy="159" rx="4.6" ry="3" fill="#EFA3A0" opacity=".65"/>
+      <ellipse cx="59" cy="159" rx="4.6" ry="3" fill="#EFA3A0" opacity=".65"/>
+      <path d="M32,167 Q45,176 58,167" stroke="#3A2E1C" stroke-width="2.2" fill="none" stroke-linecap="round"/>
 
-      <!-- straw hair, poking out from under the hat -->
+      <!-- straw hair, only at the ears now — the crown is fully covered
+           by the (lowered, better-fitted) hat -->
       <g fill="#E3B54F">
-        <g transform="translate(16,132)">
-          <use href="#strawSpike" transform="rotate(-120) scale(1.1)"/><use href="#strawSpike" transform="rotate(-140)"/>
-          <use href="#strawSpike" transform="rotate(-160)"/><use href="#strawSpike" transform="rotate(180)"/>
+        <g transform="translate(19,142)">
+          <use href="#strawSpike" transform="rotate(-125) scale(1.05)"/><use href="#strawSpike" transform="rotate(-145)"/>
+          <use href="#strawSpike" transform="rotate(-165)"/>
         </g>
-        <g transform="translate(74,132)">
-          <use href="#strawSpike" transform="rotate(120) scale(1.1)"/><use href="#strawSpike" transform="rotate(140)"/>
-          <use href="#strawSpike" transform="rotate(160)"/><use href="#strawSpike" transform="rotate(180)"/>
-        </g>
-        <g transform="translate(45,108)">
-          <use href="#strawSpike" transform="rotate(-15) scale(1.15)"/><use href="#strawSpike" transform="rotate(0) scale(1.2)"/>
-          <use href="#strawSpike" transform="rotate(15) scale(1.15)"/>
+        <g transform="translate(71,142)">
+          <use href="#strawSpike" transform="rotate(125) scale(1.05)"/><use href="#strawSpike" transform="rotate(145)"/>
+          <use href="#strawSpike" transform="rotate(165)"/>
         </g>
       </g>
 
-      <!-- floppy sun hat -->
-      <path d="M2,120 C -6,116 -4,106 6,102 C 20,96 70,96 84,102 C 94,106 96,116 88,120
-               C 72,112 18,112 2,120 Z" fill="url(#hatGrad)" stroke="#8A6220" stroke-width="2"/>
-      <path d="M14,106 C 10,84 22,66 45,66 C 68,66 80,84 76,106
-               C 64,98 26,98 14,106 Z" fill="url(#hatGrad)" stroke="#8A6220" stroke-width="2"/>
-      <path d="M18,102 C 32,98 58,98 72,102" stroke="#8B5A2B" stroke-width="4" fill="none" stroke-linecap="round"/>
-      <path d="M60,90 C 66,86 74,88 76,94 C 70,94 64,96 60,98 Z" fill="#6F8F52"/>
-    </svg>`;
+      <!-- floppy sun hat — lowered and widened so the brim actually
+           rests down over the head (previously it barely grazed the
+           top), with a soft shadow underneath to ground it -->
+      <path d="M0,148 C -10,143 -7,131 4,127 C 18,120 70,120 86,127
+               C 97,131 100,143 90,148 C 74,138 16,138 0,148 Z" fill="url(#hatGrad)" stroke="#8A6220" stroke-width="2"/>
+      <path d="M14,130 C 10,108 22,90 45,90 C 68,90 80,108 76,130
+               C 64,122 26,122 14,130 Z" fill="url(#hatGrad)" stroke="#8A6220" stroke-width="2"/>
+      <path d="M16,126 C 32,121 58,121 74,126" stroke="#8B5A2B" stroke-width="4" fill="none" stroke-linecap="round"/>
+      <ellipse cx="45" cy="134" rx="22" ry="6" fill="#5A3A12" opacity=".18"/>
+      <path d="M60,114 C 66,110 74,112 76,118 C 70,118 64,120 60,122 Z" fill="#6F8F52"/>
+    </svg>
+`;
 
   // Halloween, right corner — two jack-o'-lanterns, carved and glowing,
   // plus a black cat sitting alongside them, tail curled around its paws.
@@ -358,21 +363,27 @@
 
       <ellipse cx="55" cy="300" rx="95" ry="150" fill="url(#catGlow)"/>
 
-      <!-- black cat, sitting beside the pumpkins, tail curled around its paws -->
-      <path d="M116,334 C 126,320 123,300 108,291 C 119,297 126,312 121,329 Z" fill="#17151C"/>
-      <path d="M96,398 C 84,398 77,382 81,362 C 85,343 100,331 116,331
-               C 129,331 131,346 126,357 C 122,350 111,346 103,352
-               C 95,358 93,371 97,383 C 100,391 100,396 96,398 Z"
-            fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-      <circle cx="90" cy="325" r="19" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-      <path d="M76,313 L72,296 L87,309 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-      <path d="M100,311 L109,295 L111,313 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-      <ellipse cx="84" cy="324" rx="3" ry="4.5" fill="#C8E36B"/>
-      <ellipse cx="97" cy="323" rx="3" ry="4.5" fill="#C8E36B"/>
-      <path d="M89,330 L93,330 L91,333 Z" fill="#C46B7A"/>
-      <g stroke="#5A5765" stroke-width="0.8" opacity=".7">
-        <path d="M78,329 L64,326 M78,332 L64,333"/>
-        <path d="M102,329 L114,326 M102,331 L114,332"/>
+      <!-- black cat — moved up and further into the true corner (was
+           sitting low enough to peek out right next to the footer's date
+           range text, and mostly hidden under the grid). Now it clears
+           the footer row and sits in the same visible gutter band as the
+           pumpkins. -->
+      <g transform="translate(-45,-50)">
+        <path d="M116,334 C 126,320 123,300 108,291 C 119,297 126,312 121,329 Z" fill="#17151C"/>
+        <path d="M96,398 C 84,398 77,382 81,362 C 85,343 100,331 116,331
+                 C 129,331 131,346 126,357 C 122,350 111,346 103,352
+                 C 95,358 93,371 97,383 C 100,391 100,396 96,398 Z"
+              fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+        <circle cx="90" cy="325" r="19" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+        <path d="M76,313 L72,296 L87,309 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+        <path d="M100,311 L109,295 L111,313 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+        <ellipse cx="84" cy="324" rx="3" ry="4.5" fill="#C8E36B"/>
+        <ellipse cx="97" cy="323" rx="3" ry="4.5" fill="#C8E36B"/>
+        <path d="M89,330 L93,330 L91,333 Z" fill="#C46B7A"/>
+        <g stroke="#5A5765" stroke-width="0.8" opacity=".7">
+          <path d="M78,329 L64,326 M78,332 L64,333"/>
+          <path d="M102,329 L114,326 M102,331 L114,332"/>
+        </g>
       </g>
 
       <!-- two jack-o'-lanterns resting at the base, carved and glowing -->
@@ -408,7 +419,8 @@
           <path d="M12,409 L16,406 L20,410 L24,406 L28,409 L23,413 L20,411 L17,413 Z"/>
         </g>
       </g>
-    </svg>`;
+    </svg>
+`;
 
   // Thanksgiving, both corners (mirrored) — a turkey with a fanned tail
   // (the tail doubles as the tall vertical element the other scenes fill
