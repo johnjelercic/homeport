@@ -1823,7 +1823,27 @@
     return '';
   }
 
-  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas', 'spring', 'st-patricks-day', 'easter', 'new-year', 'summer', 'memorial-day', 'fourth-of-july'];
+  // Themes whose corner art is a real SVG file under public/themes/<id>/
+  // (left.svg / right.svg) instead of markup written into this file. This
+  // is the pipeline for every theme going forward: an artist (or generated
+  // art) delivers a vector file, it's dropped in the theme's folder, and
+  // its id is added here — no other code changes needed. SVG specifically
+  // (not PNG/raster) because Homeport runs on whatever display someone
+  // plugs it into, so the art has to stay crisp at any resolution rather
+  // than being baked for one screen size.
+  //
+  // The 12 themes handled by cornerArtFor above stay on inline SVG — they
+  // were already built and approved before this pipeline existed, and
+  // migrating already-shipped art would only add regression risk for no
+  // visible benefit. New themes are added here, not there.
+  const FILE_ART_THEMES = [];
+
+  function cornerArtPathFor(themeId, side) {
+    if (!FILE_ART_THEMES.includes(themeId)) return null;
+    return `themes/${themeId}/${side}.svg`;
+  }
+
+  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas', 'spring', 'st-patricks-day', 'easter', 'new-year', 'summer', 'memorial-day', 'fourth-of-july', ...FILE_ART_THEMES];
 
   // Settings/calendar refreshes re-call render() every few minutes with the
   // same theme id (see app.js's refreshThemeAndDisplaySettings). Skip the
@@ -1831,11 +1851,20 @@
   // don't visibly restart mid-animation on every routine refresh.
   let lastThemeId;
 
+  // Bumped on every render() call and captured by each file-based corner-art
+  // fetch below, so a stale response is discarded even if someone switches
+  // away from and then back to the same theme while the first request is
+  // still in flight -- comparing themeId alone would miss that case, since
+  // the id would match again by the time the old fetch resolves.
+  let renderGeneration = 0;
+
   function render(themeId) {
     const layer = document.getElementById('decoration');
     if (!layer) return;
     if (themeId === lastThemeId) return;
     lastThemeId = themeId;
+    renderGeneration += 1;
+    const myGeneration = renderGeneration;
     layer.innerHTML = '';
 
     if (!DECORATED_THEMES.includes(themeId)) return;
@@ -1843,8 +1872,11 @@
     // Thanksgiving, St. Patrick's Day, Easter, and Memorial Day have no
     // falling particles — just the corner scenes (falling shamrocks/coins,
     // petals over the tomb scene, or confetti-like bits over a solemn
-    // memorial scene would all read as gimmicky).
-    const count = (themeId === 'thanksgiving' || themeId === 'st-patricks-day' || themeId === 'easter' || themeId === 'memorial-day') ? 0 : PARTICLE_COUNT;
+    // memorial scene would all read as gimmicky). File-art themes default
+    // to none too, rather than silently guessing "snowflake" for whatever
+    // theme gets added next -- a particle style is opt-in, added here by
+    // name once someone actually wants one for that theme.
+    const count = (themeId === 'thanksgiving' || themeId === 'st-patricks-day' || themeId === 'easter' || themeId === 'memorial-day' || FILE_ART_THEMES.includes(themeId)) ? 0 : PARTICLE_COUNT;
 
     for (let i = 0; i < count; i++) {
       const p = document.createElement('div');
@@ -1891,15 +1923,35 @@
       layer.appendChild(p);
     }
 
-    ['left', 'right'].forEach((side) => {
-      const html = cornerArtFor(themeId, side);
-      if (!html) return;
+    function attachCornerArt(rawHtml, side) {
       const wrap = document.createElement('div');
-      wrap.innerHTML = html.trim();
+      wrap.innerHTML = rawHtml.trim();
       const svg = wrap.firstElementChild;
+      if (!svg) return;
       svg.classList.add(side);
       svg.style.opacity = CORNER_OPACITY;
       layer.appendChild(svg);
+    }
+
+    ['left', 'right'].forEach((side) => {
+      const filePath = cornerArtPathFor(themeId, side);
+      if (filePath) {
+        fetch(filePath)
+          .then((r) => (r.ok ? r.text() : ''))
+          .then((svgText) => {
+            // The active theme may have changed again while this request
+            // was in flight (rapid clicking through the settings preview,
+            // say) -- discard a stale response rather than dropping art
+            // for a theme that isn't showing anymore into the live layer.
+            if (!svgText || myGeneration !== renderGeneration) return;
+            attachCornerArt(svgText, side);
+          })
+          .catch(() => {});
+        return;
+      }
+      const html = cornerArtFor(themeId, side);
+      if (!html) return;
+      attachCornerArt(html, side);
     });
 
     if (themeId === 'christmas') {
