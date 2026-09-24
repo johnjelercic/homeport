@@ -373,17 +373,23 @@
                C101,326 104,336 100,346 C97,356 90,362 88,368 Z"
             fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
 
-      <!-- ears — tall, wide-based, angled outward from the sides of the
-           head (a narrower/taller pair centered close together reads as
-           a rabbit, so these sit further apart and lean outward) -->
-      <path d="M30,314 L37,282 L57,315 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-      <path d="M94,314 L87,282 L67,315 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-      <path d="M35,308 L39,292 L50,311 Z" fill="#2A2732"/>
-      <path d="M89,308 L85,292 L74,311 Z" fill="#2A2732"/>
-
-      <!-- head, chin sits behind the pumpkin (drawn next) so only the
-           upper face shows above the rim -->
-      <circle cx="62" cy="330" r="28" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <!-- head + ears merged into one silhouette so the ears read as
+           part of the head rather than separate stuck-on triangles;
+           chin sits behind the pumpkin (drawn next) so only the upper
+           face shows above the rim -->
+      <path d="M34,330
+               C34,316 34,306 32,306
+               L38,286
+               L50,305
+               C55,300 69,300 74,305
+               L86,286
+               L92,306
+               C90,306 90,316 90,330
+               C90,346 85,358 62,360
+               C39,358 34,346 34,330 Z"
+            fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <path d="M35,303 L38,291 L46,304 Z" fill="#2A2732"/>
+      <path d="M89,303 L86,291 L78,304 Z" fill="#2A2732"/>
 
       <!-- a hint of lighter muzzle fur, like the reference -->
       <ellipse cx="62" cy="344" rx="12" ry="8" fill="#4A4650" opacity=".55"/>
