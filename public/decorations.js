@@ -1503,6 +1503,307 @@
       </svg>`;
   }
 
+  // Summer, left corner — green trees and grass with a couple of birds
+  // overhead. Replaces the picnic-item draft (watermelon/lemonade/blanket)
+  // with a simpler, more universal "summer day" scene per John's redirect.
+  function buildBird(cx, cy, scale, rot, color) {
+    return `<path d="M-9,2 C-6,-6 -3,-6 0,0 C3,-6 6,-6 9,2" stroke="${color}" stroke-width="${(1.6 * scale).toFixed(1)}" fill="none" stroke-linecap="round" transform="translate(${cx},${cy}) rotate(${rot}) scale(${scale})"/>`;
+  }
+
+  function buildTree(cx, cy, scale, trunkGrad, canopyFill, canopyShade) {
+    return `<g transform="translate(${cx},${cy}) scale(${scale})">
+      <path d="M-5,0 L-3,-58 L3,-58 L5,0 Z" fill="url(#${trunkGrad})"/>
+      <g fill="${canopyFill}">
+        <circle cx="-20" cy="-70" r="22"/>
+        <circle cx="20" cy="-70" r="22"/>
+        <circle cx="0" cy="-90" r="26"/>
+        <circle cx="0" cy="-62" r="27"/>
+      </g>
+      <g fill="${canopyShade}" opacity=".35">
+        <circle cx="14" cy="-58" r="18"/>
+        <circle cx="0" cy="-50" r="16"/>
+      </g>
+    </g>`;
+  }
+
+  const summerTreesSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="summerGlowL" cx="45%" cy="55%" r="55%">
+          <stop offset="0%" stop-color="#FBE07A" stop-opacity="0.3"/>
+          <stop offset="55%" stop-color="#1E8A96" stop-opacity="0.1"/>
+          <stop offset="100%" stop-color="#1E8A96" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="groundGradL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8FBE5C"/>
+          <stop offset="100%" stop-color="#5FA23C"/>
+        </linearGradient>
+        <linearGradient id="trunkGradL" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#8A6A46"/>
+          <stop offset="100%" stop-color="#6B4F32"/>
+        </linearGradient>
+        <linearGradient id="trunkGradL2" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#7C5D3C"/>
+          <stop offset="100%" stop-color="#5C4228"/>
+        </linearGradient>
+      </defs>
+
+      <ellipse cx="45" cy="260" rx="100" ry="170" fill="url(#summerGlowL)"/>
+
+      <!-- grassy mound at the base -->
+      <path d="M-10,400 C10,380 40,374 65,382 C90,390 112,380 140,394 L140,400 Z" fill="url(#groundGradL)"/>
+      <path d="M-10,398 C15,384 45,380 70,388 C95,394 115,386 140,396" stroke="#3E7A34" stroke-width="2" fill="none" opacity=".45"/>
+
+      <!-- two trees, staggered for depth -->
+      ${buildTree(30, 400, 0.85, 'trunkGradL2', '#5C9C46', '#3E7A34')}
+      ${buildTree(80, 400, 1.15, 'trunkGradL', '#6FAE4A', '#4C8C3C')}
+
+      <!-- birds, flying free in the open sky above the trees -->
+      ${buildBird(30, 90, 1.1, -8, '#4A6B5C')}
+      ${buildBird(58, 130, 0.85, 10, '#3E7A34')}
+      ${buildBird(20, 160, 0.7, -14, '#4A6B5C')}
+
+      <!-- a few grass tufts -->
+      <g stroke="#3E7A34" stroke-width="2" fill="none" stroke-linecap="round" opacity=".6">
+        <path d="M8,398 C8,388 4,382 2,376"/>
+        <path d="M16,398 C17,386 20,380 22,372"/>
+        <path d="M110,398 C110,388 114,382 116,374"/>
+        <path d="M120,398 C119,388 123,382 126,376"/>
+      </g>
+    </svg>`;
+
+  // Summer, right corner — a bright sun with radiating rays as the
+  // scene's hero, grounded by one more tree and grass, with birds
+  // crossing near it.
+  function buildSunburst(cx, cy, scale, rayId, n) {
+    let rays = '';
+    for (let i = 0; i < n; i++) {
+      const angle = (360 / n) * i;
+      rays += `<use href="#${rayId}" transform="rotate(${angle.toFixed(1)})"/>`;
+    }
+    return `<g transform="translate(${cx},${cy}) scale(${scale})">
+      <g fill="#F7D24A">${rays}</g>
+      <circle r="30" fill="url(#sunFaceGradR)" stroke="#E8A93A" stroke-width="2"/>
+    </g>`;
+  }
+
+  const summerSunSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="summerGlowR" cx="45%" cy="40%" r="60%">
+          <stop offset="0%" stop-color="#FBE07A" stop-opacity="0.36"/>
+          <stop offset="55%" stop-color="#1E8A96" stop-opacity="0.1"/>
+          <stop offset="100%" stop-color="#1E8A96" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="sunFaceGradR" cx="38%" cy="32%" r="70%">
+          <stop offset="0%" stop-color="#FFF3B0"/>
+          <stop offset="100%" stop-color="#F7C233"/>
+        </radialGradient>
+        <linearGradient id="groundGradR" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8FBE5C"/>
+          <stop offset="100%" stop-color="#5FA23C"/>
+        </linearGradient>
+        <linearGradient id="trunkGradR" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#8A6A46"/>
+          <stop offset="100%" stop-color="#6B4F32"/>
+        </linearGradient>
+        <path id="sunRayR" d="M-3.5,-32 L3.5,-32 L0,-46 Z"/>
+      </defs>
+
+      <ellipse cx="50" cy="170" rx="100" ry="150" fill="url(#summerGlowR)"/>
+
+      <!-- the sun, high and prominent -->
+      ${buildSunburst(45, 90, 1, 'sunRayR', 12)}
+
+      <!-- grounding tree + grass -->
+      <path d="M-10,400 C10,380 40,374 65,382 C90,390 112,380 140,394 L140,400 Z" fill="url(#groundGradR)"/>
+      <path d="M-10,398 C15,384 45,380 70,388 C95,394 115,386 140,396" stroke="#3E7A34" stroke-width="2" fill="none" opacity=".45"/>
+      <g transform="translate(75,400) scale(1.05)">
+        <path d="M-5,0 L-3,-58 L3,-58 L5,0 Z" fill="url(#trunkGradR)"/>
+        <g fill="#6FAE4A">
+          <circle cx="-20" cy="-70" r="22"/>
+          <circle cx="20" cy="-70" r="22"/>
+          <circle cx="0" cy="-90" r="26"/>
+          <circle cx="0" cy="-62" r="27"/>
+        </g>
+        <g fill="#4C8C3C" opacity=".35">
+          <circle cx="14" cy="-58" r="18"/>
+          <circle cx="0" cy="-50" r="16"/>
+        </g>
+      </g>
+
+      <!-- birds crossing near the sun -->
+      ${buildBird(20, 130, 0.9, 6, '#4A6B5C')}
+      ${buildBird(40, 170, 0.7, -10, '#3E7A34')}
+
+      <!-- grass tufts -->
+      <g stroke="#3E7A34" stroke-width="2" fill="none" stroke-linecap="round" opacity=".6">
+        <path d="M10,398 C10,388 6,382 4,376"/>
+        <path d="M18,398 C19,386 22,380 24,372"/>
+      </g>
+    </svg>`;
+
+  // Memorial Day, left corner — a full flag, waving out from the pole at
+  // real landscape proportions (not the narrow, mostly-hidden sliver from
+  // the previous draft) plus a small row of tombstones. The laurel-branch
+  // "wreath" from the previous draft read as a sapling next to the flag,
+  // so it's gone — just the flag and the grave markers now.
+  const memorialFlagSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="memGlowL" cx="45%" cy="35%" r="55%">
+          <stop offset="0%" stop-color="#2E3F6E" stop-opacity="0.22"/>
+          <stop offset="60%" stop-color="#2E3F6E" stop-opacity="0.08"/>
+          <stop offset="100%" stop-color="#2E3F6E" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="memPoleGradL" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#EDF0F5"/>
+          <stop offset="50%" stop-color="#4A5568"/>
+          <stop offset="100%" stop-color="#EDF0F5"/>
+        </linearGradient>
+        <linearGradient id="memNavyGradL" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#3B4E80"/>
+          <stop offset="100%" stop-color="#242F52"/>
+        </linearGradient>
+        <linearGradient id="stoneGradMemL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#C7CCD6"/>
+          <stop offset="100%" stop-color="#9AA1AF"/>
+        </linearGradient>
+        <path id="memStarL" d="M0,-4.4 L1.1,-1.5 L4.2,-1.4 L1.7,0.6 L2.6,3.6 L0,1.8 L-2.6,3.6 L-1.7,0.6 L-4.2,-1.4 L-1.1,-1.5 Z"/>
+      </defs>
+
+      <ellipse cx="45" cy="200" rx="95" ry="170" fill="url(#memGlowL)"/>
+
+      <!-- tombstones at the base -->
+      <g>
+        <path d="M2,398 L2,362 C2,352 18,352 18,362 L18,398 Z" fill="url(#stoneGradMemL)" stroke="#7E8494" stroke-width="1.5"/>
+        <path d="M28,398 L28,346 C28,334 48,334 48,346 L48,398 Z" fill="url(#stoneGradMemL)" stroke="#7E8494" stroke-width="1.5"/>
+        <path d="M56,398 L56,364 C56,354 70,354 70,364 L70,398 Z" fill="url(#stoneGradMemL)" stroke="#7E8494" stroke-width="1.5"/>
+        <path d="M34,346 L42,346 M38,340 L38,352" stroke="#7E8494" stroke-width="1.5" opacity=".6"/>
+      </g>
+
+      <!-- flagpole, kept toward the outer edge of the corner so the flag
+           extends out across the visible margin rather than into the
+           grid -->
+      <path d="M22,400 L22,95" stroke="#2A2F3D" stroke-width="9" stroke-linecap="round" opacity=".18"/>
+      <path d="M22,400 L22,95" stroke="url(#memPoleGradL)" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="22" cy="88" r="7" fill="#E8C876" stroke="#A8842E" stroke-width="1.5"/>
+
+      <!-- the flag itself, drawn at real landscape proportions (wider than
+           tall) and waving fully out from the pole -->
+      <g transform="translate(22,108)">
+        <path d="M0,0 C33.3,-7 61.8,7 95,0 L95,11 C61.8,18 33.3,4 0,11 Z" fill="#B23A48"/>
+        <path d="M0,11 C33.3,4 61.8,18 95,11 L95,22 C61.8,29 33.3,15 0,22 Z" fill="#EDE7D8"/>
+        <path d="M0,22 C33.3,15 61.8,29 95,22 L95,34 C61.8,41 33.3,27 0,34 Z" fill="#B23A48"/>
+        <path d="M0,34 C33.3,27 61.8,41 95,34 L95,45 C61.8,52 33.3,38 0,45 Z" fill="#EDE7D8"/>
+        <path d="M0,45 C33.3,38 61.8,52 95,45 L95,56 C61.8,63 33.3,49 0,56 Z" fill="#B23A48"/>
+        <rect x="0" y="0" width="38" height="34" fill="url(#memNavyGradL)" stroke="#1B2033" stroke-width="1"/>
+        <g fill="#F4F1E8">
+          <use href="#memStarL" transform="translate(7,7) scale(0.55)"/>
+          <use href="#memStarL" transform="translate(19,7) scale(0.55)"/>
+          <use href="#memStarL" transform="translate(31,7) scale(0.55)"/>
+          <use href="#memStarL" transform="translate(13,17) scale(0.55)"/>
+          <use href="#memStarL" transform="translate(25,17) scale(0.55)"/>
+          <use href="#memStarL" transform="translate(7,27) scale(0.55)"/>
+          <use href="#memStarL" transform="translate(19,27) scale(0.55)"/>
+          <use href="#memStarL" transform="translate(31,27) scale(0.55)"/>
+        </g>
+      </g>
+    </svg>`;
+
+  // Fourth of July, left corner — a full American flag, big and waving,
+  // as the theme's own hero (not a small accent) since John's redirect
+  // was specifically "America's birthday, celebrated with fireworks and
+  // the American flag." Grounded with grass and a taller pole than
+  // Memorial Day's, since this flag is the main event rather than one
+  // element in a bigger scene.
+  const julyFlagSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="julyGlowL" cx="45%" cy="35%" r="55%">
+          <stop offset="0%" stop-color="#B0293C" stop-opacity="0.22"/>
+          <stop offset="55%" stop-color="#2E3F6E" stop-opacity="0.12"/>
+          <stop offset="100%" stop-color="#2E3F6E" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="julyPoleGradL" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#EDF0F5"/>
+          <stop offset="50%" stop-color="#4A5568"/>
+          <stop offset="100%" stop-color="#EDF0F5"/>
+        </linearGradient>
+        <linearGradient id="julyNavyGradL" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#3B4E80"/>
+          <stop offset="100%" stop-color="#242F52"/>
+        </linearGradient>
+        <linearGradient id="groundGradJulyL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8FBE5C"/>
+          <stop offset="100%" stop-color="#5FA23C"/>
+        </linearGradient>
+        <path id="julyStarL" d="M0,-4.4 L1.1,-1.5 L4.2,-1.4 L1.7,0.6 L2.6,3.6 L0,1.8 L-2.6,3.6 L-1.7,0.6 L-4.2,-1.4 L-1.1,-1.5 Z"/>
+      </defs>
+
+      <ellipse cx="55" cy="180" rx="105" ry="180" fill="url(#julyGlowL)"/>
+
+      <!-- grassy mound at the base -->
+      <path d="M-10,400 C10,380 40,374 65,382 C90,390 112,380 140,394 L140,400 Z" fill="url(#groundGradJulyL)"/>
+      <path d="M-10,398 C15,384 45,380 70,388 C95,394 115,386 140,396" stroke="#3E7A34" stroke-width="2" fill="none" opacity=".45"/>
+
+      <!-- flagpole -->
+      <path d="M20,398 L20,78" stroke="#2A2F3D" stroke-width="9" stroke-linecap="round" opacity=".18"/>
+      <path d="M20,398 L20,78" stroke="url(#julyPoleGradL)" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="20" cy="70" r="7" fill="#E8C876" stroke="#A8842E" stroke-width="1.5"/>
+
+      <!-- the flag itself -- big, full landscape proportions, waving out
+           from the pole across most of the corner's width -->
+      <g transform="translate(20,90)">
+        <path d="M0,0 C38.5,-9 71.5,9 110,0 L110,13 C71.5,22 38.5,4 0,13 Z" fill="#B0293C"/>
+        <path d="M0,13 C38.5,4 71.5,22 110,13 L110,26 C71.5,35 38.5,17 0,26 Z" fill="#F5F4F0"/>
+        <path d="M0,26 C38.5,17 71.5,35 110,26 L110,38 C71.5,47 38.5,29 0,38 Z" fill="#B0293C"/>
+        <path d="M0,38 C38.5,29 71.5,47 110,38 L110,51 C71.5,60 38.5,42 0,51 Z" fill="#F5F4F0"/>
+        <path d="M0,51 C38.5,42 71.5,60 110,51 L110,64 C71.5,73 38.5,55 0,64 Z" fill="#B0293C"/>
+        <rect x="0" y="0" width="44" height="38" fill="url(#julyNavyGradL)" stroke="#1B2033" stroke-width="1"/>
+        <g fill="#F4F1E8">
+          <use href="#julyStarL" transform="translate(8,8) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(22,8) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(36,8) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(15,17) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(29,17) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(8,26) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(22,26) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(36,26) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(15,33) scale(0.6)"/>
+          <use href="#julyStarL" transform="translate(29,33) scale(0.6)"/>
+        </g>
+      </g>
+    </svg>`;
+
+  function buildFireworksPatrioticSVG() {
+    // Same buildFireworkBurst machinery as New Year's, just red/white/blue
+    // palettes instead of the varied party-colors set.
+    const red = ['#B0293C', '#FFFFFF', '#F5C542'];
+    const blue = ['#2E3F6E', '#FFFFFF', '#F5C542'];
+    const silver = ['#C7CCD6', '#FFFFFF', '#B0293C'];
+    const bursts = [
+      buildFireworkBurst(30, 65, 1.05, blue),
+      buildFireworkBurst(68, 40, 0.7, red),
+      buildFireworkBurst(14, 150, 0.85, silver),
+      buildFireworkBurst(78, 130, 0.6, blue),
+      buildFireworkBurst(28, 295, 1.8, red),
+      buildFireworkBurst(75, 335, 1.15, silver),
+    ].join('');
+    return `
+      <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="julyGlowR" cx="40%" cy="55%" r="60%">
+            <stop offset="0%" stop-color="#B0293C" stop-opacity="0.22"/>
+            <stop offset="55%" stop-color="#2E3F6E" stop-opacity="0.12"/>
+            <stop offset="100%" stop-color="#2E3F6E" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="45" cy="230" rx="110" ry="220" fill="url(#julyGlowR)"/>
+        ${bursts}
+      </svg>`;
+  }
+
   // Halloween uses two different scenes (scarecrow / cat + pumpkins) rather
   // than the same mirrored art on both sides; every other decorated theme
   // mirrors one piece of art across both corners.
@@ -1516,10 +1817,13 @@
     if (themeId === 'st-patricks-day') return side === 'left' ? leprechaunSVG : rainbowPotSVG;
     if (themeId === 'easter') return side === 'left' ? easterCrossSVG : easterTombSVG;
     if (themeId === 'new-year') return side === 'left' ? champagneToastSVG : buildFireworksSVG();
+    if (themeId === 'summer') return side === 'left' ? summerTreesSVG : summerSunSVG;
+    if (themeId === 'memorial-day') return side === 'left' ? memorialFlagSVG : '';
+    if (themeId === 'fourth-of-july') return side === 'left' ? julyFlagSVG : buildFireworksPatrioticSVG();
     return '';
   }
 
-  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas', 'spring', 'st-patricks-day', 'easter', 'new-year'];
+  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas', 'spring', 'st-patricks-day', 'easter', 'new-year', 'summer', 'memorial-day', 'fourth-of-july'];
 
   // Settings/calendar refreshes re-call render() every few minutes with the
   // same theme id (see app.js's refreshThemeAndDisplaySettings). Skip the
@@ -1536,10 +1840,11 @@
 
     if (!DECORATED_THEMES.includes(themeId)) return;
 
-    // Thanksgiving, St. Patrick's Day, and Easter have no falling
-    // particles — just the corner scenes (falling shamrocks/coins or
-    // petals over the tomb scene would read as gimmicky).
-    const count = (themeId === 'thanksgiving' || themeId === 'st-patricks-day' || themeId === 'easter') ? 0 : PARTICLE_COUNT;
+    // Thanksgiving, St. Patrick's Day, Easter, and Memorial Day have no
+    // falling particles — just the corner scenes (falling shamrocks/coins,
+    // petals over the tomb scene, or confetti-like bits over a solemn
+    // memorial scene would all read as gimmicky).
+    const count = (themeId === 'thanksgiving' || themeId === 'st-patricks-day' || themeId === 'easter' || themeId === 'memorial-day') ? 0 : PARTICLE_COUNT;
 
     for (let i = 0; i < count; i++) {
       const p = document.createElement('div');
@@ -1553,6 +1858,8 @@
         themeId === 'halloween' ? 'bat' :
         themeId === 'spring' ? ('petal p' + (1 + (i % 3))) :
         themeId === 'new-year' ? ('confetti c' + (1 + (i % 3))) :
+        themeId === 'summer' ? ('sunspeck s' + (1 + (i % 3))) :
+        themeId === 'fourth-of-july' ? ('julyspark j' + (1 + (i % 3))) :
         'snowflake'
       );
       p.style.left = left + 'vw';
@@ -1574,6 +1881,12 @@
       } else if (themeId === 'new-year') {
         const sz = 6 + Math.random() * 4;
         p.style.width = sz + 'px'; p.style.height = (sz * 1.6) + 'px';
+      } else if (themeId === 'summer') {
+        const sz = 6 + Math.random() * 3;
+        p.style.width = sz + 'px'; p.style.height = sz + 'px';
+      } else if (themeId === 'fourth-of-july') {
+        const sz = 6 + Math.random() * 3;
+        p.style.width = sz + 'px'; p.style.height = sz + 'px';
       }
       layer.appendChild(p);
     }

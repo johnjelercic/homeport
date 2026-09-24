@@ -57,6 +57,14 @@
 .particle.confetti.c1 { background: #F5E28A; }
 .particle.confetti.c2 { background: #E8B4C8; }
 .particle.confetti.c3 { background: #B8AEDC; }
+.particle.sunspeck { border-radius: 50%; }
+.particle.sunspeck.s1 { background: #FFD866; box-shadow: 0 0 4px rgba(255,216,102,0.85); }
+.particle.sunspeck.s2 { background: #FFF3D0; box-shadow: 0 0 4px rgba(255,243,208,0.8); }
+.particle.sunspeck.s3 { background: #6FD6C7; box-shadow: 0 0 4px rgba(111,214,199,0.75); }
+.particle.julyspark { border-radius: 50%; }
+.particle.julyspark.j1 { background: #B0293C; box-shadow: 0 0 4px rgba(176,41,60,0.85); }
+.particle.julyspark.j2 { background: #FFFFFF; box-shadow: 0 0 4px rgba(255,255,255,0.85); }
+.particle.julyspark.j3 { background: #2E3F6E; box-shadow: 0 0 4px rgba(46,63,110,0.7); }
 
 /* Corner-art (corn stalks, snowman, scarecrow, etc.) stands bottom-anchored
    in the widened side padding above — right-side-up, base at the bottom,
