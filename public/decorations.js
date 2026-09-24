@@ -363,81 +363,85 @@
 
       <ellipse cx="55" cy="300" rx="95" ry="150" fill="url(#catGlow)"/>
 
-      <!-- black cat — a clean side-profile silhouette (sitting, facing
-           toward the calendar), rebuilt from scratch: the previous version
-           mixed a front-facing head (two eyes, symmetric whiskers) with a
-           rear/haunch-shaped body, which read as the cat's rear facing the
-           viewer with its head twisted back. Now it's one consistent pose:
-           rounded haunch at the back, arched body to the chest, a profile
-           head with a single visible eye/ear, and whiskers only on the
-           side the face actually points toward. -->
-      <g transform="translate(30,259)">
-        <!-- tail, curling up from the rear -->
-        <path d="M14,58 C0,54 -8,40 -2,26 C4,14 18,10 28,16
-                 C18,16 8,22 6,32 C4,42 10,50 20,54 Z"
-              fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <!-- black cat, peering over the big pumpkin — drawn front-on (so it
+           reads the same whichever way this corner gets mirrored) with
+           its chin behind the pumpkin's rim and paws draped over the top.
+           The whole cat+big-pumpkin cluster sits higher than the original
+           pumpkin placement so the cat's face clears the footer's date
+           range text below — the pumpkins alone never reached that high,
+           but ears/eyes/whiskers on top of them did. -->
 
-        <!-- body: haunch (rear) arching up over the back, down the chest
-             and front leg, along the ground back to the haunch -->
-        <path d="M14,34 C6,38 2,48 4,58 C5,66 8,72 12,76
-                 C10,80 10,84 14,86
-                 L52,86
-                 C52,74 51,64 50,60
-                 C48,50 46,42 40,36
-                 C32,26 22,26 14,34 Z"
-              fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <!-- tail, curling out from behind the pumpkin -->
+      <path d="M90,354 C102,350 111,334 106,316 C103,307 96,305 92,311
+               C99,312 102,321 98,330 C95,339 89,347 90,354 Z"
+            fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
 
-        <!-- head: profile wedge with a snout, attached right at the neck -->
-        <path d="M40,36 C38,26 42,16 52,12 C62,8 70,12 74,20
-                 C76,24 75,28 72,29 C73,32 72,35 68,37
-                 C60,41 48,40 42,35 Z"
-              fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <!-- ears -->
+      <path d="M46,306 L39,276 L59,300 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <path d="M78,306 L85,276 L65,300 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <path d="M46,300 L42,284 L54,297 Z" fill="#2A2732"/>
+      <path d="M78,300 L82,284 L70,297 Z" fill="#2A2732"/>
 
-        <!-- one ear -->
-        <path d="M50,14 L48,2 L60,10 Z" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
-
-        <!-- one eye, in profile -->
-        <ellipse cx="60" cy="21" rx="3" ry="4" transform="rotate(-15 60 21)" fill="#C8E36B"/>
-
-        <!-- whiskers, only from the side the face is turned toward -->
-        <g stroke="#5A5765" stroke-width="0.8" opacity=".7">
-          <path d="M72,24 L86,20 M73,27 L87,26 M72,30 L85,32"/>
-        </g>
+      <!-- head, chin sits behind the pumpkin (drawn next) so only the
+           upper face shows above the rim -->
+      <circle cx="62" cy="328" r="27" fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.5"/>
+      <ellipse cx="51" cy="323" rx="3.4" ry="4.6" transform="rotate(-8 51 323)" fill="#C8E36B"/>
+      <ellipse cx="73" cy="323" rx="3.4" ry="4.6" transform="rotate(8 73 323)" fill="#C8E36B"/>
+      <path d="M59,330 L65,330 L62,334 Z" fill="#C46B7A"/>
+      <path d="M60,335 Q62,338 64,335" stroke="#0D0C10" stroke-width="1.2" fill="none" stroke-linecap="round"/>
+      <g stroke="#5A5765" stroke-width="0.8" opacity=".7">
+        <path d="M40,327 L23,322 M40,331 L22,331 M40,335 L23,339"/>
+        <path d="M84,327 L101,322 M84,331 L102,331 M84,335 L101,339"/>
       </g>
 
-      <!-- two jack-o'-lanterns resting at the base, carved and glowing -->
+      <!-- two jack-o'-lanterns, moved up with the cat (see note above) so
+           the chin still tucks behind this near one's rim -->
       <g>
-        <ellipse cx="62" cy="396" rx="30" ry="22" fill="url(#jackGrad)" stroke="#7C3B0C" stroke-width="2"/>
+        <ellipse cx="62" cy="366" rx="30" ry="22" fill="url(#jackGrad)" stroke="#7C3B0C" stroke-width="2"/>
         <g stroke="#7C3B0C" stroke-width="1.3" fill="none" opacity=".5">
-          <path d="M42,378 Q50,396 42,414"/>
-          <path d="M52,375 Q58,396 52,417"/>
-          <path d="M62,374 Q62,396 62,418"/>
-          <path d="M72,375 Q66,396 72,417"/>
-          <path d="M82,378 Q74,396 82,414"/>
+          <path d="M42,348 Q50,366 42,384"/>
+          <path d="M52,345 Q58,366 52,387"/>
+          <path d="M62,344 Q62,366 62,388"/>
+          <path d="M72,345 Q66,366 72,387"/>
+          <path d="M82,348 Q74,366 82,384"/>
         </g>
-        <rect x="58" y="366" width="7" height="11" rx="2.5" fill="#5B4A1E" transform="rotate(-5 62 371)"/>
-        <path d="M63,364 C 68,358 74,358 76,362 C 71,362 67,364 65,368 Z" fill="#4C7A3E"/>
+        <rect x="58" y="336" width="7" height="11" rx="2.5" fill="#5B4A1E" transform="rotate(-5 62 341)"/>
+        <path d="M63,334 C 68,328 74,328 76,332 C 71,332 67,334 65,338 Z" fill="#4C7A3E"/>
         <g fill="#FFD98A" opacity=".92">
-          <path d="M50,388 L56,382 L58,392 Z"/>
-          <path d="M74,388 L68,382 L66,392 Z"/>
-          <path d="M50,402 L56,398 L60,403 L64,398 L70,402 L64,407 L60,404 L56,407 Z"/>
+          <path d="M50,358 L56,352 L58,362 Z"/>
+          <path d="M74,358 L68,352 L66,362 Z"/>
+          <path d="M50,372 L56,368 L60,373 L64,368 L70,372 L64,377 L60,374 L56,377 Z"/>
         </g>
 
-        <ellipse cx="20" cy="404" rx="21" ry="16" fill="url(#jackGrad)" stroke="#7C3B0C" stroke-width="1.8"/>
+        <ellipse cx="20" cy="374" rx="21" ry="16" fill="url(#jackGrad)" stroke="#7C3B0C" stroke-width="1.8"/>
         <g stroke="#7C3B0C" stroke-width="1.1" fill="none" opacity=".5">
-          <path d="M6,390 Q11,404 6,418"/>
-          <path d="M13,388 Q17,404 13,420"/>
-          <path d="M20,387 Q20,404 20,421"/>
-          <path d="M27,388 Q23,404 27,420"/>
-          <path d="M34,390 Q29,404 34,418"/>
+          <path d="M6,360 Q11,374 6,388"/>
+          <path d="M13,358 Q17,374 13,390"/>
+          <path d="M20,357 Q20,374 20,391"/>
+          <path d="M27,358 Q23,374 27,390"/>
+          <path d="M34,360 Q29,374 34,388"/>
         </g>
-        <rect x="17" y="378" width="5.5" height="9" rx="2" fill="#5B4A1E" transform="rotate(5 20 382)"/>
+        <rect x="17" y="348" width="5.5" height="9" rx="2" fill="#5B4A1E" transform="rotate(5 20 352)"/>
         <g fill="#FFD98A" opacity=".92">
-          <path d="M11,398 L16,393 L17,401 Z"/>
-          <path d="M29,398 L24,393 L23,401 Z"/>
-          <path d="M12,409 L16,406 L20,410 L24,406 L28,409 L23,413 L20,411 L17,413 Z"/>
+          <path d="M11,368 L16,363 L17,371 Z"/>
+          <path d="M29,368 L24,363 L23,371 Z"/>
+          <path d="M12,379 L16,376 L20,380 L24,376 L28,379 L23,383 L20,381 L17,383 Z"/>
         </g>
       </g>
+
+      <!-- paws, draped over the top of the pumpkin -->
+      <g fill="url(#catGrad)" stroke="#0D0C10" stroke-width="1.2">
+        <ellipse cx="49" cy="350" rx="8" ry="6" transform="rotate(-8 49 350)"/>
+        <ellipse cx="75" cy="350" rx="8" ry="6" transform="rotate(8 75 350)"/>
+      </g>
+      <g stroke="#0D0C10" stroke-width="0.8" opacity=".6">
+        <path d="M45,347 L45,352 M49,346 L49,352 M53,347 L53,352"/>
+        <path d="M71,347 L71,352 M75,346 L75,352 M79,347 L79,352"/>
+      </g>
+
+      <!-- a soft grounding shadow, since this cluster now sits a little
+           above the very bottom edge instead of flush against it -->
+      <ellipse cx="40" cy="392" rx="52" ry="10" fill="#000000" opacity=".08"/>
     </svg>
 `;
 
