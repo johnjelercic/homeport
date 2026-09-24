@@ -41,7 +41,7 @@
 
   async function fetchActiveThemeId() {
     const s = await fetchAllSettings();
-    return s.active_theme || 'default';
+    return s.active_theme || 'modern';
   }
 
   function applyTheme(theme) {
@@ -65,8 +65,8 @@
       fetchThemes(),
       preFetchedSettings || fetchAllSettings()
     ]);
-    const activeId = settings.active_theme || 'default';
-    const theme = themes.find((t) => t.id === activeId) || themes.find((t) => t.id === 'default') || themes[0];
+    const activeId = settings.active_theme || 'modern';
+    const theme = themes.find((t) => t.id === activeId) || themes.find((t) => t.id === 'modern') || themes[0];
     applyTheme(theme);
     return { themes, activeId, theme };
   }

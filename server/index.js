@@ -205,7 +205,7 @@ function loadThemes() {
 }
 
 const SETTINGS_DEFAULTS = {
-  active_theme: 'default',
+  active_theme: 'modern',
   idle_timeout_minutes: 10,
   photo_interval_seconds: 20,
   timeline_start_hour: 4,
