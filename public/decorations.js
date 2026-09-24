@@ -1252,48 +1252,205 @@
         </g>
       </defs>
 
-      <ellipse cx="60" cy="300" rx="95" ry="130" fill="url(#dawnGlowR)"/>
+      <ellipse cx="60" cy="240" rx="100" ry="185" fill="url(#dawnGlowR)"/>
 
       <!-- a craggy, irregular rock outcropping -- a jagged mix of
            straight and gently curved segments at different heights,
-           rather than one smooth dome, so it reads as natural stone -->
-      <path d="M-10,400 L-10,306 C-8,283 -2,263 12,251 L26,259 L20,221
-               C26,201 36,193 44,205 L46,181
-               C52,161 66,157 72,175 L80,159
-               C92,165 100,183 96,205 L114,199
-               C126,213 134,241 132,269 L140,286 L140,400 Z"
+           rather than one smooth dome, so it reads as natural stone --
+           big and tall enough that the doorway reads as a small opening
+           cut into a substantial mountain, solidly planted on the
+           ground, rather than a small mound perched above it -->
+      <path d="M-10,400 L-10,265 C-8,233 -2,205 12,187 L26,199 L20,145
+               C26,116 36,104 44,122 L46,87
+               C52,60 66,54 72,79 L80,56
+               C92,65 100,91 96,122 L114,114
+               C126,133 134,173 132,214 L140,238 L140,400 Z"
             fill="url(#rockGradR)" stroke="#5C5648" stroke-width="2" stroke-linejoin="round"/>
-      <path d="M8,342 Q20,302 14,272 M108,332 Q96,302 104,272 M58,212 Q68,197 78,204"
+      <path d="M8,317 Q20,260 14,217 M108,303 Q96,260 104,217 M58,132 Q68,110 78,121"
             stroke="#8F8778" stroke-width="2" fill="none" opacity=".4"/>
 
       <!-- the archway, carved into the rock -- a dark frame around a
            radiant, empty interior, proportioned like an actual doorway
            (rounded top, roughly as tall as it is wide) so it reads
-           clearly as a tomb entrance rather than a narrow slot -->
-      <path d="M34,398 L34,324 C34,300 90,300 90,324 L90,398 Z" fill="none" stroke="#4A4438" stroke-width="7"/>
-      <path d="M37,398 L37,325 C37,306 87,306 87,325 L87,398 Z" fill="url(#tombLight)"/>
+           clearly as a tomb entrance rather than a narrow slot -- raised
+           well clear of the footer-text/viewport safe-zone cutoff (the
+           bottom sliver of the corner box is not reliably visible) so
+           the doorway doesn't appear to sink below the page -->
+      <path d="M34,373 L34,299 C34,275 90,275 90,299 L90,373 Z" fill="none" stroke="#4A4438" stroke-width="7"/>
+      <path d="M37,373 L37,300 C37,281 87,281 87,300 L87,373 Z" fill="url(#tombLight)"/>
 
       <!-- the stone, rolled just aside from the entrance -- large enough
            to read as the same door-sized stone that sealed the tomb, not
            a pebble -- with a shallow groove showing the short distance it
            travelled, and ring texture plus a highlight to keep it
-           reading as a separate, rounded, rolled object -->
-      <path d="M-8,394 Q9,388 26,394" stroke="#6B6558" stroke-width="2.5" fill="none" opacity=".5"/>
-      <ellipse cx="14" cy="382" rx="30" ry="10" fill="#000000" opacity=".14"/>
-      <ellipse cx="14" cy="357" rx="32" ry="34" fill="url(#stoneGrad)" stroke="#7A6E52" stroke-width="2.5"/>
+           reading as a separate, rounded, rolled object -- raised to
+           match the doorway's new ground line -->
+      <path d="M-8,369 Q9,363 26,369" stroke="#6B6558" stroke-width="2.5" fill="none" opacity=".5"/>
+      <ellipse cx="14" cy="357" rx="30" ry="10" fill="#000000" opacity=".14"/>
+      <ellipse cx="14" cy="332" rx="32" ry="34" fill="url(#stoneGrad)" stroke="#7A6E52" stroke-width="2.5"/>
       <g stroke="#C4B78E" stroke-width="1.4" fill="none" opacity=".7">
-        <ellipse cx="14" cy="357" rx="22" ry="23"/>
-        <ellipse cx="14" cy="357" rx="11" ry="12"/>
+        <ellipse cx="14" cy="332" rx="22" ry="23"/>
+        <ellipse cx="14" cy="332" rx="11" ry="12"/>
       </g>
-      <ellipse cx="4" cy="344" rx="8" ry="10" fill="#EDE2BE" opacity=".55"/>
+      <ellipse cx="4" cy="319" rx="8" ry="10" fill="#EDE2BE" opacity=".55"/>
 
       <!-- the folded linen cloth, left behind, just inside the entrance -->
-      <path d="M50,392 C50,384 76,384 76,392 C76,397 68,399 63,398 C58,399 50,397 50,392 Z" fill="#F5EFE0" stroke="#D9CBB0" stroke-width="1"/>
-      <path d="M56,388 L56,393 M63,387 L63,393 M70,388 L70,393" stroke="#D9CBB0" stroke-width="1" opacity=".7"/>
+      <path d="M50,367 C50,359 76,359 76,367 C76,372 68,374 63,373 C58,374 50,372 50,367 Z" fill="#F5EFE0" stroke="#D9CBB0" stroke-width="1"/>
+      <path d="M56,363 L56,368 M63,362 L63,368 M70,363 L70,368" stroke="#D9CBB0" stroke-width="1" opacity=".7"/>
 
       <!-- a lily at the foot of the entrance -->
-      <use href="#easterLilyR" transform="translate(100,392) scale(0.9) rotate(8)"/>
+      <use href="#easterLilyR" transform="translate(100,367) scale(0.9) rotate(8)"/>
     </svg>`;
+
+  // New Year's, left corner — two champagne flutes leaning in for a
+  // toast, bubbles rising through the gold liquid, and a burst of
+  // sparkle right where the rims meet, with a gold bow at the base for
+  // a bit of extra ornament.
+  const champagneToastSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="nyGlowL" cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#E8D48A" stop-opacity="0.32"/>
+          <stop offset="55%" stop-color="#8A7FA8" stop-opacity="0.16"/>
+          <stop offset="100%" stop-color="#8A7FA8" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="glassStemGradL" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#DCD5E6"/>
+          <stop offset="100%" stop-color="#B8ADC8"/>
+        </linearGradient>
+        <linearGradient id="glassBodyGradL" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#EFE9F5" stop-opacity=".55"/>
+          <stop offset="50%" stop-color="#FFFFFF" stop-opacity=".25"/>
+          <stop offset="100%" stop-color="#DCD3E8" stop-opacity=".55"/>
+        </linearGradient>
+        <linearGradient id="bubblyGradL" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0%" stop-color="#C9932E"/>
+          <stop offset="100%" stop-color="#F8E3A3"/>
+        </linearGradient>
+        <linearGradient id="goldGradL" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#F5E28A"/>
+          <stop offset="100%" stop-color="#A8842E"/>
+        </linearGradient>
+        <path id="sparkle4L" d="M0,-7 C1,-2.2 2.2,-1 7,0 C2.2,1 1,2.2 0,7 C-1,2.2 -2.2,1 -7,0 C-2.2,-1 -1,-2.2 0,-7 Z"/>
+        <g id="fluteL">
+          <ellipse cx="0" cy="0" rx="13" ry="4" fill="url(#glassStemGradL)" stroke="#8B7FA0" stroke-width="1"/>
+          <rect x="-2.2" y="-58" width="4.4" height="58" rx="2" fill="url(#glassStemGradL)" stroke="#8B7FA0" stroke-width=".8"/>
+          <path d="M-5,-58 C-7,-92 -11,-128 -13,-152 C-13,-156 13,-156 13,-152 C11,-128 7,-92 5,-58 Z"
+                fill="url(#glassBodyGradL)" stroke="#8B7FA0" stroke-width="1.2"/>
+          <path d="M-9,-110 C-10,-130 -12,-142 -12.5,-152 C-12.5,-155 12.5,-155 12.5,-152 C12,-142 10,-130 9,-110
+                   C9,-107 -9,-107 -9,-110 Z" fill="url(#bubblyGradL)"/>
+          <g fill="#FFF7DE" opacity=".85">
+            <circle cx="-3" cy="-118" r="1.1"/>
+            <circle cx="2.5" cy="-131" r="1.3"/>
+            <circle cx="-1" cy="-143" r="1"/>
+            <circle cx="4" cy="-114" r=".9"/>
+            <circle cx="0" cy="-160" r="1" opacity=".7"/>
+          </g>
+          <path d="M-8,-70 C-9,-95 -11,-120 -12,-140" stroke="#FFFFFF" stroke-width="1.6" fill="none" opacity=".4" stroke-linecap="round"/>
+        </g>
+      </defs>
+
+      <ellipse cx="55" cy="215" rx="95" ry="160" fill="url(#nyGlowL)"/>
+
+      <!-- two flutes, leaning in with a visible gap between the rims so
+           both glasses still read clearly -->
+      <use href="#fluteL" transform="translate(40,340) rotate(6)"/>
+      <use href="#fluteL" transform="translate(90,340) rotate(-6)"/>
+
+      <!-- the clink -- a burst of sparkle bridging the gap between rims -->
+      <circle cx="65" cy="186" r="16" fill="#FFF7DE" opacity=".35"/>
+      <g fill="#F5E28A">
+        <use href="#sparkle4L" transform="translate(65,184) scale(1.3)"/>
+        <use href="#sparkle4L" transform="translate(50,192) scale(.7)"/>
+        <use href="#sparkle4L" transform="translate(80,190) scale(.8)"/>
+        <use href="#sparkle4L" transform="translate(66,170) scale(.55)"/>
+      </g>
+
+      <!-- a gold bow tied at the base, for a little extra ornament -->
+      <g transform="translate(65,337)">
+        <path d="M0,0 C-4,-8 -18,-10 -22,-2 C-24,4 -14,7 -2,2 Z" fill="url(#goldGradL)" stroke="#7A611F" stroke-width="1"/>
+        <path d="M0,0 C4,-8 18,-10 22,-2 C24,4 14,7 2,2 Z" fill="url(#goldGradL)" stroke="#7A611F" stroke-width="1"/>
+        <circle cx="0" cy="0" r="4.5" fill="url(#goldGradL)" stroke="#7A611F" stroke-width="1"/>
+        <path d="M-3,4 L-8,16 L-3,14 Z M3,4 L8,16 L3,14 Z" fill="url(#goldGradL)" stroke="#7A611F" stroke-width=".8"/>
+      </g>
+    </svg>`;
+
+  // New Year's, right corner — one firework burst, built from curved,
+  // drooping "willow" trails (each a quadratic curve, not a straight
+  // ray) plus scattered gold spark dots, so it reads like the real
+  // thing rather than a starburst icon. Randomized per render for
+  // variety; called from cornerArtFor, not a static template.
+  function buildFireworkBurst(cx, cy, scale, palette) {
+    const n = 16 + Math.floor(Math.random() * 6);
+    // Trails droop downward with "gravity", which can push the lowest
+    // bursts' tips into the footer-text safe zone (viewBox y > ~365) --
+    // clamp each trail's absolute y so that never happens.
+    const maxEy = Math.max(15, 355 - cy);
+    let trails = '';
+    let cores = '';
+    let sparks = '';
+    for (let i = 0; i < n; i++) {
+      const angle = (i / n) * Math.PI * 2 + (Math.random() * 0.3 - 0.15);
+      const len = (34 + Math.random() * 26) * scale;
+      const droop = (8 + Math.random() * 14) * scale;
+      const ex = Math.cos(angle) * len;
+      const ey = Math.min(Math.sin(angle) * len + droop, maxEy);
+      const mx = ex * 0.55;
+      const my = ey * 0.5;
+      const color = palette[i % palette.length];
+      // Two-layer stroke -- a wider, softer glow underneath a narrower,
+      // near-white-hot core -- reads as far more vivid/lit-up than a
+      // single flat stroke.
+      const wGlow = (2.6 + Math.random() * 1.6).toFixed(1);
+      const wCore = (1 + Math.random() * 0.7).toFixed(1);
+      const op = (0.85 + Math.random() * 0.15).toFixed(2);
+      const d = `M0,0 Q${mx.toFixed(1)},${my.toFixed(1)} ${ex.toFixed(1)},${ey.toFixed(1)}`;
+      trails += `<path d="${d}" stroke="${color}" stroke-width="${wGlow}" fill="none" stroke-linecap="round" opacity="${(op * 0.55).toFixed(2)}"/>`;
+      cores += `<path d="${d}" stroke="${color}" stroke-width="${wCore}" fill="none" stroke-linecap="round" opacity="${op}"/>`;
+      if (Math.random() > 0.25) {
+        sparks += `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="${(1.1 + Math.random() * 1.1).toFixed(1)}" fill="#FFF7DE" opacity="${(0.7 + Math.random() * 0.3).toFixed(2)}"/>`;
+      }
+    }
+    return `<g transform="translate(${cx},${cy})">
+      ${trails}${cores}${sparks}
+    </g>`;
+  }
+
+  function buildFireworksSVG() {
+    // Saturated, varied palettes (each burst two-tone, with a bright
+    // white-gold core) for a punchier, more colorful show than a single
+    // muted gold/lavender pairing.
+    const red = ['#E63946', '#FFFFFF', '#F5E28A'];
+    const teal = ['#2EC4B6', '#FFFFFF', '#F5E28A'];
+    const gold = ['#F5C542', '#FFFFFF', '#E63946'];
+    const violet = ['#9D6FD9', '#FFFFFF', '#F5E28A'];
+    const green = ['#4CAF6D', '#FFFFFF', '#F5E28A'];
+    const pink = ['#F45FA0', '#FFFFFF', '#F5E28A'];
+    // Spread across most of the corner's height, kept toward the low-x
+    // (visible/outer) side of the box, with the two biggest, most
+    // colorful bursts low down so the fireworks read with real punch in
+    // the lower corner rather than being confined to a small patch up top.
+    const bursts = [
+      buildFireworkBurst(30, 65, 1.05, gold),
+      buildFireworkBurst(68, 40, 0.7, pink),
+      buildFireworkBurst(14, 150, 0.85, teal),
+      buildFireworkBurst(78, 130, 0.6, violet),
+      buildFireworkBurst(28, 295, 1.8, red),
+      buildFireworkBurst(75, 335, 1.15, green),
+    ].join('');
+    return `
+      <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="nyGlowR" cx="40%" cy="55%" r="60%">
+            <stop offset="0%" stop-color="#E8D48A" stop-opacity="0.28"/>
+            <stop offset="55%" stop-color="#8A7FA8" stop-opacity="0.15"/>
+            <stop offset="100%" stop-color="#8A7FA8" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <ellipse cx="45" cy="230" rx="110" ry="220" fill="url(#nyGlowR)"/>
+        ${bursts}
+      </svg>`;
+  }
 
   // A string of lights swagged across the top of the page, behind the
   // header — Christmas only, and separate from the corner art. Full width
@@ -1358,10 +1515,11 @@
     if (themeId === 'spring') return side === 'left' ? forsythiaSVG : redbudSVG;
     if (themeId === 'st-patricks-day') return side === 'left' ? leprechaunSVG : rainbowPotSVG;
     if (themeId === 'easter') return side === 'left' ? easterCrossSVG : easterTombSVG;
+    if (themeId === 'new-year') return side === 'left' ? champagneToastSVG : buildFireworksSVG();
     return '';
   }
 
-  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas', 'spring', 'st-patricks-day', 'easter'];
+  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas', 'spring', 'st-patricks-day', 'easter', 'new-year'];
 
   // Settings/calendar refreshes re-call render() every few minutes with the
   // same theme id (see app.js's refreshThemeAndDisplaySettings). Skip the
@@ -1394,6 +1552,7 @@
         themeId === 'fall' ? ('leaf l' + (1 + (i % 4))) :
         themeId === 'halloween' ? 'bat' :
         themeId === 'spring' ? ('petal p' + (1 + (i % 3))) :
+        themeId === 'new-year' ? ('confetti c' + (1 + (i % 3))) :
         'snowflake'
       );
       p.style.left = left + 'vw';
@@ -1412,6 +1571,9 @@
       } else if (themeId === 'spring') {
         const sz = 8 + Math.random() * 6;
         p.style.width = sz + 'px'; p.style.height = sz + 'px';
+      } else if (themeId === 'new-year') {
+        const sz = 6 + Math.random() * 4;
+        p.style.width = sz + 'px'; p.style.height = (sz * 1.6) + 'px';
       }
       layer.appendChild(p);
     }

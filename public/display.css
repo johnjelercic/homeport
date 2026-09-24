@@ -53,6 +53,10 @@
 .particle.petal.p1 { background: #F3B6C7; }
 .particle.petal.p2 { background: #F7CBE0; }
 .particle.petal.p3 { background: #FDE4A8; }
+.particle.confetti { border-radius: 1px; }
+.particle.confetti.c1 { background: #F5E28A; }
+.particle.confetti.c2 { background: #E8B4C8; }
+.particle.confetti.c3 { background: #B8AEDC; }
 
 /* Corner-art (corn stalks, snowman, scarecrow, etc.) stands bottom-anchored
    in the widened side padding above — right-side-up, base at the bottom,
