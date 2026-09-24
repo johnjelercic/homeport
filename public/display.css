@@ -1,9 +1,67 @@
 .app {
+  /* Stacked above .decoration (z-index:0, below) so the opaque day cells
+     and header text always sit on top and stay legible; the decoration
+     shows only through the page's own --bg color (header strip, the gaps
+     between day cells, the outer margin). */
+  position: relative;
+  z-index: 1;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 24px 30px 16px;
+  /* Side padding widened from 30px to give the seasonal corner art
+     (public/decorations.js) an actual lane to stand in along each edge. */
+  padding: 24px 64px 16px;
 }
+
+/* ---------- Seasonal decoration ---------- */
+
+/* Fixed, full-viewport, and placed before .app in the DOM with no
+   z-index of its own — see .app's z-index:1 above. Populated by
+   public/decorations.js based on the active theme. */
+.decoration {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.particle {
+  position: absolute;
+  top: -40px;
+  opacity: 0;
+  animation-name: decoration-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes decoration-fall {
+  0%   { transform: translateY(-5vh) translateX(0) rotate(0deg); opacity: 0; }
+  8%   { opacity: var(--pmax, .55); }
+  92%  { opacity: var(--pmax, .55); }
+  100% { transform: translateY(105vh) translateX(var(--drift, 40px)) rotate(var(--spin, 220deg)); opacity: 0; }
+}
+
+.particle.leaf { width: 15px; height: 15px; border-radius: 0 45% 0 45%; }
+.particle.leaf.l1 { background: #C98A3E; }
+.particle.leaf.l2 { background: #D9A441; }
+.particle.leaf.l3 { background: #B5591E; }
+.particle.leaf.l4 { background: #8B5A2B; }
+.particle.snowflake { width: 7px; height: 7px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 3px rgba(255,255,255,0.8); }
+.particle.bat svg { width: 100%; height: 100%; display: block; }
+
+/* Corner-art (corn stalks, snowman, scarecrow, etc.) stands bottom-anchored
+   in the widened side padding above — right-side-up, base at the bottom,
+   mirrored left/right via scaleX, never flipped upside down. */
+.corner-art { position: absolute; bottom: -6px; width: 120px; height: 380px; }
+.corner-art.left { left: -6px; }
+.corner-art.right { right: -6px; transform: scaleX(-1); }
+
+/* A string of lights swagged across the very top of the page, behind the
+   header — Christmas only. */
+.light-string { position: absolute; top: 0; left: 0; width: 100%; height: 110px; }
+@keyframes decoration-twinkle { 0%, 100% { opacity: .5; } 50% { opacity: 1; } }
+.light-string .bulb { animation: decoration-twinkle 2.6s ease-in-out infinite; }
 
 /* ---------- Header ---------- */
 

@@ -1,0 +1,17 @@
+{
+  "id": "halloween",
+  "label": "Halloween",
+  "description": "Plum dusk with a vivid pumpkin-orange accent.",
+  "emoji": "🎃",
+  "colors": {
+    "bg": "#F3ECF7",
+    "surface": "#FFFCFE",
+    "surfaceMuted": "#EBDFF1",
+    "ink": "#2B2033",
+    "inkSoft": "#7C6B8C",
+    "border": "#DECBE8",
+    "borderStrong": "#C7AEDC",
+    "accent": "#E8631A",
+    "accentInk": "#FFFFFF"
+  }
+}

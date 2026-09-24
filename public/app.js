@@ -770,6 +770,7 @@
     const emojiEl = document.getElementById('hdrEmoji');
     emojiEl.textContent = (theme && theme.emoji) || '';
     emojiEl.hidden = !(theme && theme.emoji);
+    if (window.HomeportDecorations) window.HomeportDecorations.render(theme && theme.id);
   }
 
   // ---------- Idle timeout / photo frame ----------
