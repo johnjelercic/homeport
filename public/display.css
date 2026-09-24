@@ -49,6 +49,10 @@
 .particle.leaf.l4 { background: #8B5A2B; }
 .particle.snowflake { width: 7px; height: 7px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 0 3px rgba(255,255,255,0.8); }
 .particle.bat svg { width: 100%; height: 100%; display: block; }
+.particle.petal { border-radius: 0 60% 0 60%; }
+.particle.petal.p1 { background: #F3B6C7; }
+.particle.petal.p2 { background: #F7CBE0; }
+.particle.petal.p3 { background: #FDE4A8; }
 
 /* Corner-art (corn stalks, snowman, scarecrow, etc.) stands bottom-anchored
    in the widened side padding above — right-side-up, base at the bottom,

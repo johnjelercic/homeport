@@ -700,6 +700,601 @@
       <path d="M57,313 C61,310 65,310 69,312 M58,318 C63,316 68,316 72,318" stroke="#E8C89A" stroke-width="1" fill="none" opacity=".7"/>
     </svg>`;
 
+  // Spring, left corner — a forsythia branch, arching and bare except for
+  // the small four-petal blooms that appear directly on the wood before
+  // any leaves do (the real plant's signature look), with a couple of
+  // tulips at the base.
+  const forsythiaSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="springGlowL" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#E9E86C" stop-opacity="0.32"/>
+          <stop offset="55%" stop-color="#A8D96B" stop-opacity="0.14"/>
+          <stop offset="100%" stop-color="#A8D96B" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="branchGradL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8A7458"/>
+          <stop offset="100%" stop-color="#6B5A45"/>
+        </linearGradient>
+        <linearGradient id="stemGradL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#6FAE4A"/>
+          <stop offset="100%" stop-color="#4C8C3C"/>
+        </linearGradient>
+        <g id="forsythiaBloom">
+          <ellipse cx="0" cy="-4.2" rx="2.1" ry="4.2" fill="#F5D033"/>
+          <ellipse cx="0" cy="4.2" rx="2.1" ry="4.2" fill="#F0C929"/>
+          <ellipse cx="-4.2" cy="0" rx="4.2" ry="2.1" fill="#F0C929"/>
+          <ellipse cx="4.2" cy="0" rx="4.2" ry="2.1" fill="#F5D033"/>
+          <circle r="1.4" fill="#B5591E"/>
+        </g>
+        <path id="tulipCupL" d="M-9,0 C-9,-10 -5,-18 0,-22 C5,-18 9,-10 9,0 C9,4 5,6 0,4 C-5,6 -9,4 -9,0 Z"/>
+        <path id="tulipLeafL" d="M0,0 C4,-18 2,-34 -6,-46 C-10,-32 -8,-14 0,0 Z"/>
+      </defs>
+
+      <ellipse cx="50" cy="290" rx="95" ry="150" fill="url(#springGlowL)"/>
+
+      <!-- arching branches, bare wood -->
+      <g fill="none" stroke="url(#branchGradL)" stroke-width="3.5" stroke-linecap="round">
+        <path d="M18,400 C14,332 6,262 22,192 C30,152 46,122 58,98"/>
+        <path d="M32,400 C28,322 22,254 40,184 C48,148 64,116 80,90"/>
+        <path d="M46,400 C44,330 40,272 56,214 C64,180 78,152 92,124"/>
+        <path d="M10,400 C6,342 0,284 12,224 C18,196 28,172 36,152"/>
+      </g>
+
+      <!-- blooms scattered along the branches -->
+      <g>
+        <use href="#forsythiaBloom" transform="translate(22,192) scale(1.1) rotate(10)"/>
+        <use href="#forsythiaBloom" transform="translate(15,240) scale(0.9) rotate(-20)"/>
+        <use href="#forsythiaBloom" transform="translate(28,150) scale(1.2) rotate(35)"/>
+        <use href="#forsythiaBloom" transform="translate(40,184) scale(1) rotate(-10)"/>
+        <use href="#forsythiaBloom" transform="translate(35,230) scale(1.15) rotate(20)"/>
+        <use href="#forsythiaBloom" transform="translate(48,140) scale(0.85) rotate(-30)"/>
+        <use href="#forsythiaBloom" transform="translate(58,98) scale(1.1) rotate(15)"/>
+        <use href="#forsythiaBloom" transform="translate(56,214) scale(1) rotate(-15)"/>
+        <use href="#forsythiaBloom" transform="translate(64,180) scale(1.1) rotate(25)"/>
+        <use href="#forsythiaBloom" transform="translate(74,150) scale(0.95) rotate(-20)"/>
+        <use href="#forsythiaBloom" transform="translate(80,90) scale(1.05) rotate(10)"/>
+        <use href="#forsythiaBloom" transform="translate(12,224) scale(0.9) rotate(15)"/>
+        <use href="#forsythiaBloom" transform="translate(18,270) scale(1) rotate(-25)"/>
+        <use href="#forsythiaBloom" transform="translate(36,152) scale(1.1) rotate(30)"/>
+        <use href="#forsythiaBloom" transform="translate(92,124) scale(1) rotate(-10)"/>
+        <use href="#forsythiaBloom" transform="translate(86,106) scale(0.9) rotate(20)"/>
+      </g>
+
+      <!-- tulips at the base -- red and orange -->
+      <g>
+        <use href="#tulipLeafL" fill="#4C8C3C" transform="translate(18,382) rotate(-10)"/>
+        <path d="M18,384 L19,342" stroke="url(#stemGradL)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <use href="#tulipCupL" fill="#D1483C" stroke="#A8362C" stroke-width="1" transform="translate(19,342) rotate(4)"/>
+
+        <use href="#tulipLeafL" fill="#4C8C3C" transform="translate(40,382) rotate(12) scale(0.9)"/>
+        <path d="M42,384 L43,354" stroke="url(#stemGradL)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <use href="#tulipCupL" fill="#E8863D" stroke="#B5591E" stroke-width="1" transform="translate(43,354) rotate(-6) scale(0.85)"/>
+      </g>
+    </svg>`;
+
+  // Spring, right corner — a redbud branch: thinner twigs than the
+  // forsythia's, with small clustered magenta blossoms right on the bare
+  // wood, plus purple and white tulips for contrast with the left corner.
+  const redbudSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="springGlowR" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#E9E86C" stop-opacity="0.3"/>
+          <stop offset="55%" stop-color="#D46FA0" stop-opacity="0.13"/>
+          <stop offset="100%" stop-color="#D46FA0" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="trunkGradR" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#6B5A45"/>
+          <stop offset="50%" stop-color="#4A3C2C"/>
+          <stop offset="100%" stop-color="#6B5A45"/>
+        </linearGradient>
+        <radialGradient id="canopyGradR" cx="38%" cy="28%" r="80%">
+          <stop offset="0%" stop-color="#E389B0"/>
+          <stop offset="100%" stop-color="#B84A80"/>
+        </radialGradient>
+        <linearGradient id="stemGradR" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#6FAE4A"/>
+          <stop offset="100%" stop-color="#4C8C3C"/>
+        </linearGradient>
+        <g id="redbudBloom">
+          <circle cx="-2.2" cy="-1" r="2.3" fill="#C6538C"/>
+          <circle cx="2.1" cy="-1.4" r="2.1" fill="#D46FA0"/>
+          <circle cx="0" cy="2" r="2.4" fill="#B84A80"/>
+          <circle cx="-0.8" cy="0.8" r="1.6" fill="#E389B0"/>
+        </g>
+        <path id="tulipCupR" d="M-9,0 C-9,-10 -5,-18 0,-22 C5,-18 9,-10 9,0 C9,4 5,6 0,4 C-5,6 -9,4 -9,0 Z"/>
+        <path id="tulipLeafR" d="M0,0 C4,-18 2,-34 -6,-46 C-10,-32 -8,-14 0,0 Z"/>
+      </defs>
+
+      <ellipse cx="55" cy="260" rx="95" ry="160" fill="url(#springGlowR)"/>
+
+      <!-- a redbud is a small tree, not a shrub -- a low trunk that forks
+           into two or three main limbs, unlike the forsythia's fountain of
+           bare canes -->
+      <path d="M52,400 C51,362 50,322 54,288 C55,278 59,272 64,268" fill="none" stroke="url(#trunkGradR)" stroke-width="12" stroke-linecap="round"/>
+      <path d="M64,268 C60,248 53,224 42,204 C38,196 34,190 29,184" fill="none" stroke="url(#trunkGradR)" stroke-width="7" stroke-linecap="round"/>
+      <path d="M64,268 C71,246 82,222 97,201 C103,192 109,184 115,177" fill="none" stroke="url(#trunkGradR)" stroke-width="7" stroke-linecap="round"/>
+      <g fill="none" stroke="url(#trunkGradR)" stroke-width="3.5" stroke-linecap="round">
+        <path d="M42,204 C33,193 20,184 8,180"/>
+        <path d="M34,192 C29,172 33,150 26,132"/>
+        <path d="M97,201 C106,186 108,166 100,148"/>
+        <path d="M105,186 C116,176 126,168 132,164"/>
+        <path d="M54,288 C43,281 30,278 18,281"/>
+        <path d="M60,272 C69,258 84,250 97,248"/>
+      </g>
+
+      <!-- soft canopy masses, layered to suggest the dense blossom cover a
+           redbud gets before any leaves come in -->
+      <g fill="url(#canopyGradR)" opacity=".92">
+        <ellipse cx="24" cy="188" rx="26" ry="32"/>
+        <ellipse cx="60" cy="156" rx="30" ry="36"/>
+        <ellipse cx="96" cy="172" rx="28" ry="34"/>
+        <ellipse cx="112" cy="216" rx="22" ry="28"/>
+        <ellipse cx="14" cy="234" rx="20" ry="24"/>
+        <ellipse cx="72" cy="220" rx="25" ry="26"/>
+        <ellipse cx="45" cy="222" rx="20" ry="22"/>
+      </g>
+
+      <!-- discrete bloom clusters on top, breaking up the canopy silhouette
+           and giving it texture -->
+      <g>
+        <use href="#redbudBloom" transform="translate(10,178) scale(1.15)"/>
+        <use href="#redbudBloom" transform="translate(24,158) scale(1.3)"/>
+        <use href="#redbudBloom" transform="translate(38,192) scale(1)"/>
+        <use href="#redbudBloom" transform="translate(50,138) scale(1.2)"/>
+        <use href="#redbudBloom" transform="translate(64,126) scale(1.3)"/>
+        <use href="#redbudBloom" transform="translate(78,150) scale(1.1)"/>
+        <use href="#redbudBloom" transform="translate(90,146) scale(1.2)"/>
+        <use href="#redbudBloom" transform="translate(104,168) scale(1)"/>
+        <use href="#redbudBloom" transform="translate(116,198) scale(1.1)"/>
+        <use href="#redbudBloom" transform="translate(122,232) scale(0.95)"/>
+        <use href="#redbudBloom" transform="translate(96,232) scale(1.15)"/>
+        <use href="#redbudBloom" transform="translate(60,206) scale(1.2)"/>
+        <use href="#redbudBloom" transform="translate(30,214) scale(1.1)"/>
+        <use href="#redbudBloom" transform="translate(8,222) scale(1)"/>
+        <use href="#redbudBloom" transform="translate(16,252) scale(1.1)"/>
+        <use href="#redbudBloom" transform="translate(38,246) scale(1)"/>
+        <use href="#redbudBloom" transform="translate(80,196) scale(1.05)"/>
+      </g>
+
+      <!-- tulips at the base -- purple and white -->
+      <g>
+        <use href="#tulipLeafR" fill="#4C8C3C" transform="translate(22,382) rotate(8)"/>
+        <path d="M22,384 L23,344" stroke="url(#stemGradR)" stroke-width="3" fill="none" stroke-linecap="round"/>
+        <use href="#tulipCupR" fill="#8B5FA8" stroke="#6B4680" stroke-width="1" transform="translate(23,344) rotate(-4)"/>
+
+        <use href="#tulipLeafR" fill="#4C8C3C" transform="translate(44,382) rotate(-10) scale(0.9)"/>
+        <path d="M40,384 L41,356" stroke="url(#stemGradR)" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+        <use href="#tulipCupR" fill="#F5F0E8" stroke="#D9CBB8" stroke-width="1" transform="translate(41,356) rotate(6) scale(0.85)"/>
+      </g>
+    </svg>`;
+
+  // St. Patrick's Day, left corner — closely modeled on classic leprechaun
+  // clip-art (big round head, wild curly hair and beard, wide-flared green
+  // top hat, cheerful gap-toothed grin, pot of gold in both hands). The
+  // "curl" symbol is reused all over the hair/beard/eyebrows to build a
+  // wavy, voluminous silhouette instead of a single smooth blob.
+  const leprechaunSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="lepGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#E8C34A" stop-opacity="0.3"/>
+          <stop offset="55%" stop-color="#2E9A4C" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#2E9A4C" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="coatGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#34A855"/>
+          <stop offset="100%" stop-color="#1E7A3C"/>
+        </linearGradient>
+        <linearGradient id="lapelGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#4ABE70"/>
+          <stop offset="100%" stop-color="#2E9A4C"/>
+        </linearGradient>
+        <linearGradient id="trouserGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#23823F"/>
+          <stop offset="100%" stop-color="#155C2C"/>
+        </linearGradient>
+        <radialGradient id="lepFaceGrad" cx="35%" cy="28%" r="80%">
+          <stop offset="0%" stop-color="#FBE8C4"/>
+          <stop offset="100%" stop-color="#E8C896"/>
+        </radialGradient>
+        <linearGradient id="hatGradLep" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#1B6B34"/>
+          <stop offset="50%" stop-color="#34A855"/>
+          <stop offset="100%" stop-color="#1B6B34"/>
+        </linearGradient>
+        <linearGradient id="goldGrad" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0%" stop-color="#F5E28A"/>
+          <stop offset="100%" stop-color="#C9A227"/>
+        </linearGradient>
+        <radialGradient id="lepPotGrad" cx="35%" cy="25%" r="80%">
+          <stop offset="0%" stop-color="#3A3A3A"/>
+          <stop offset="100%" stop-color="#141414"/>
+        </radialGradient>
+        <radialGradient id="lepCoinGrad" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#F5DD7E"/>
+          <stop offset="100%" stop-color="#C9A227"/>
+        </radialGradient>
+        <g id="clover">
+          <path d="M0,0 C-1,-6 -6,-8 -8,-4 C-6,-1 -3,0 0,0 Z"/>
+          <path d="M0,0 C1,-6 6,-8 8,-4 C6,-1 3,0 0,0 Z"/>
+          <path d="M0,0 C-5,2 -6,7 -2,8 C0,5 0,2 0,0 Z"/>
+        </g>
+        <!-- a single wavy curl -- reused, scaled and rotated, to build all
+             the hair, beard and eyebrow volume -->
+        <path id="curl" d="M0,4 C-1,0 1,-4 5,-5 C9,-6 13,-4 14,0
+                            C10,-1 6,-1 3,2 C1,4 1,6 0,8 C-1,7 0,6 0,4 Z"/>
+      </defs>
+
+      <ellipse cx="65" cy="270" rx="95" ry="160" fill="url(#lepGlow)"/>
+
+      <!-- short, stubby legs, green-striped like the clip-art -->
+      <path d="M38,315 C36,331 36,347 40,359 C44,365 52,365 54,359 C55,347 54,331 54,315 Z" fill="url(#trouserGrad)" stroke="#0F3A1C" stroke-width="1.5"/>
+      <path d="M76,315 C75,331 74,347 75,359 C76,365 84,365 88,359 C92,347 92,331 90,315 Z" fill="url(#trouserGrad)" stroke="#0F3A1C" stroke-width="1.5"/>
+      <g stroke="#0F3A1C" stroke-width="1.5" opacity=".35">
+        <path d="M37,325 L54,325 M37,336 L54,336 M38,347 L55,347"/>
+        <path d="M75,325 L92,325 M75,336 L92,336 M75,347 L91,347"/>
+      </g>
+
+      <!-- shoes with gold buckles -->
+      <path d="M33,358 C31,368 37,374 47,374 C55,374 57,368 53,360 Z" fill="#141414"/>
+      <rect x="40" y="360" width="9" height="9" rx="1.5" fill="url(#goldGrad)" stroke="#8A6A1E" stroke-width=".6" transform="rotate(-4 44.5 364.5)"/>
+      <path d="M75,358 C73,368 79,374 89,374 C97,374 99,368 95,360 Z" fill="#141414"/>
+      <rect x="82" y="360" width="9" height="9" rx="1.5" fill="url(#goldGrad)" stroke="#8A6A1E" stroke-width=".6" transform="rotate(4 86.5 364.5)"/>
+
+      <!-- round, compact torso with lapels and buttons -->
+      <path d="M34,252 C34,240 96,240 96,252 L101,328 C101,341 29,341 29,328 Z" fill="url(#coatGrad)" stroke="#0F3A1C" stroke-width="2"/>
+      <path d="M55,244 L46,258 L58,274 L65,262 L72,274 L84,258 L75,244" fill="url(#lapelGrad)" stroke="#155C2C" stroke-width="1.2"/>
+      <circle cx="65" cy="278" r="3" fill="url(#goldGrad)" stroke="#8A6A1E" stroke-width=".5"/>
+      <circle cx="65" cy="292" r="3" fill="url(#goldGrad)" stroke="#8A6A1E" stroke-width=".5"/>
+      <circle cx="65" cy="306" r="3" fill="url(#goldGrad)" stroke="#8A6A1E" stroke-width=".5"/>
+      <!-- belt -->
+      <rect x="29" y="313" width="72" height="13" fill="#141414"/>
+      <rect x="57" y="311" width="17" height="17" rx="2" fill="url(#goldGrad)" stroke="#8A6A1E" stroke-width="1"/>
+      <rect x="62" y="315.5" width="7" height="8" rx="1" fill="#2A1F14"/>
+      <!-- white shirt collar -->
+      <path d="M50,246 C45,244 43,240 45,236 C55,232 75,232 85,236 C87,240 85,244 80,246 Z" fill="#F5F0E8" stroke="#D9CBB0" stroke-width=".7"/>
+
+      <!-- pot of gold, held in both hands -->
+      <ellipse cx="65" cy="312" rx="27" ry="9" fill="#050505"/>
+      <path d="M39,309 C37,328 48,339 65,339 C82,339 93,328 91,309 Z" fill="url(#lepPotGrad)" stroke="#000000" stroke-width="1.5"/>
+      <path d="M45,314 C44,322 48,329 52,332" stroke="#5A5A5A" stroke-width="1.5" fill="none" opacity=".5"/>
+      <g stroke="#8A6A1E" stroke-width="1">
+        <circle cx="50" cy="299" r="8" fill="url(#lepCoinGrad)"/>
+        <circle cx="65" cy="291" r="9.5" fill="url(#lepCoinGrad)"/>
+        <circle cx="80" cy="299" r="8" fill="url(#lepCoinGrad)"/>
+        <circle cx="58" cy="307" r="6.5" fill="url(#lepCoinGrad)"/>
+        <circle cx="72" cy="307" r="6.5" fill="url(#lepCoinGrad)"/>
+        <circle cx="65" cy="303" r="6" fill="url(#lepCoinGrad)"/>
+      </g>
+      <g stroke="#8A6A1E" stroke-width=".6" fill="none" opacity=".6">
+        <path d="M65,286 Q68,291 65,296"/>
+        <path d="M50,294 Q53,299 50,304"/>
+      </g>
+
+      <!-- arms, curving down to hold the pot, with simple fingers on the
+           hands gripping the rim -->
+      <path d="M30,258 C19,270 15,290 26,307 C31,314 41,313 44,305 C41,291 37,274 39,260 Z" fill="url(#coatGrad)" stroke="#0F3A1C" stroke-width="1.5"/>
+      <path d="M100,258 C111,270 115,290 104,307 C99,314 89,313 86,305 C89,291 93,274 91,260 Z" fill="url(#coatGrad)" stroke="#0F3A1C" stroke-width="1.5"/>
+      <circle cx="32" cy="309" r="7.5" fill="url(#lepFaceGrad)" stroke="#C7A263" stroke-width=".6"/>
+      <circle cx="98" cy="309" r="7.5" fill="url(#lepFaceGrad)" stroke="#C7A263" stroke-width=".6"/>
+      <g stroke="#C7A263" stroke-width="1" opacity=".7">
+        <path d="M27,306 L24,310 M31,312 L29,316 M36,311 L35,315"/>
+        <path d="M103,306 L106,310 M99,312 L101,316 M94,311 L95,315"/>
+      </g>
+
+      <!-- neck -->
+      <rect x="53" y="226" width="24" height="22" rx="9" fill="url(#lepFaceGrad)"/>
+
+      <!-- big, round chibi head -->
+      <circle cx="65" cy="188" r="40" fill="url(#lepFaceGrad)" stroke="#C7A263" stroke-width="1.5"/>
+
+      <!-- ears -->
+      <path d="M24,180 C16,177 12,187 18,195 C22,198 27,193 27,187 Z" fill="url(#lepFaceGrad)" stroke="#C7A263" stroke-width="1"/>
+      <path d="M106,180 C114,177 118,187 112,195 C108,198 103,193 103,187 Z" fill="url(#lepFaceGrad)" stroke="#C7A263" stroke-width="1"/>
+
+      <!-- wild, curly ginger hair, built from a base mass plus scattered
+           curls so the silhouette is bumpy and voluminous, not a smooth
+           blob -->
+      <g>
+        <path d="M14,178 C4,166 4,146 16,132 C26,124 40,128 43,140 C34,142 26,150 24,164 C23,172 20,178 14,178 Z" fill="#D9791E"/>
+        <path d="M116,178 C126,166 126,146 114,132 C104,124 90,128 87,140 C96,142 104,150 106,164 C107,172 110,178 116,178 Z" fill="#D9791E"/>
+        <g fill="#C9702E">
+          <use href="#curl" transform="translate(8,160) scale(1.6) rotate(200)"/>
+          <use href="#curl" transform="translate(6,140) scale(1.4) rotate(230)"/>
+          <use href="#curl" transform="translate(16,124) scale(1.5) rotate(260)"/>
+          <use href="#curl" transform="translate(30,118) scale(1.3) rotate(290)"/>
+          <use href="#curl" transform="translate(20,150) scale(1.2) rotate(220)"/>
+          <use href="#curl" transform="translate(122,160) scale(-1.6,1.6) rotate(200)"/>
+          <use href="#curl" transform="translate(124,140) scale(-1.4,1.4) rotate(230)"/>
+          <use href="#curl" transform="translate(114,124) scale(-1.5,1.5) rotate(260)"/>
+          <use href="#curl" transform="translate(100,118) scale(-1.3,1.3) rotate(290)"/>
+          <use href="#curl" transform="translate(110,150) scale(-1.2,1.2) rotate(220)"/>
+        </g>
+      </g>
+
+      <!-- bushy eyebrows, built from overlapping curls rather than a
+           single stroke -->
+      <g fill="#C9702E">
+        <use href="#curl" transform="translate(38,169) scale(1.5) rotate(100)"/>
+        <use href="#curl" transform="translate(47,162) scale(1.6) rotate(75)"/>
+        <use href="#curl" transform="translate(58,163) scale(1.3) rotate(50)"/>
+        <use href="#curl" transform="translate(92,169) scale(-1.5,1.5) rotate(100)"/>
+        <use href="#curl" transform="translate(83,162) scale(-1.6,1.6) rotate(75)"/>
+        <use href="#curl" transform="translate(72,163) scale(-1.3,1.3) rotate(50)"/>
+      </g>
+
+      <!-- big eyes with iris, pupil and a catchlight -->
+      <ellipse cx="51" cy="180" rx="6.2" ry="7.2" fill="#FFFFFF" stroke="#00000022" stroke-width=".6"/>
+      <circle cx="52" cy="181" r="3.7" fill="#5B8FC7"/>
+      <circle cx="52" cy="181" r="2" fill="#1A1A1A"/>
+      <circle cx="49.8" cy="178.5" r="1.1" fill="#FFFFFF"/>
+      <ellipse cx="79" cy="180" rx="6.2" ry="7.2" fill="#FFFFFF" stroke="#00000022" stroke-width=".6"/>
+      <circle cx="80" cy="181" r="3.7" fill="#5B8FC7"/>
+      <circle cx="80" cy="181" r="2" fill="#1A1A1A"/>
+      <circle cx="77.8" cy="178.5" r="1.1" fill="#FFFFFF"/>
+
+      <!-- freckles -->
+      <g fill="#C9702E" opacity=".5">
+        <circle cx="43" cy="190" r="1"/>
+        <circle cx="47" cy="193" r="1"/>
+        <circle cx="60" cy="192" r="1"/>
+        <circle cx="70" cy="192" r="1"/>
+        <circle cx="83" cy="193" r="1"/>
+        <circle cx="87" cy="190" r="1"/>
+      </g>
+
+      <!-- rosy cheeks -->
+      <ellipse cx="37" cy="192" rx="7" ry="5" fill="#F0847A" opacity=".5"/>
+      <ellipse cx="93" cy="192" rx="7" ry="5" fill="#F0847A" opacity=".5"/>
+
+      <!-- nose -->
+      <ellipse cx="65" cy="190" rx="5" ry="4" fill="#E8A15A"/>
+
+      <!-- big bushy beard and mustache, one continuous wavy mass so it
+           reads as full and curly rather than a smooth blob -- dips low
+           in the middle so the open smile stays visible -->
+      <path d="M17,178 C13,202 18,226 32,240 C43,251 56,257 65,257 C74,257 87,251 98,240
+               C112,226 117,202 113,178 C104,190 96,198 88,202
+               C90,196 90,190 86,186 C82,194 76,200 65,204
+               C54,200 48,194 44,186 C40,190 40,196 42,202
+               C34,198 26,190 17,178 Z"
+            fill="#D9791E" stroke="#A85A16" stroke-width="1.5"/>
+      <g fill="#C9702E">
+        <use href="#curl" transform="translate(20,190) scale(1.6) rotate(200)"/>
+        <use href="#curl" transform="translate(18,212) scale(1.5) rotate(215)"/>
+        <use href="#curl" transform="translate(26,230) scale(1.5) rotate(235)"/>
+        <use href="#curl" transform="translate(38,244) scale(1.4) rotate(255)"/>
+        <use href="#curl" transform="translate(52,254) scale(1.3) rotate(275)"/>
+        <use href="#curl" transform="translate(110,190) scale(-1.6,1.6) rotate(200)"/>
+        <use href="#curl" transform="translate(112,212) scale(-1.5,1.5) rotate(215)"/>
+        <use href="#curl" transform="translate(104,230) scale(-1.5,1.5) rotate(235)"/>
+        <use href="#curl" transform="translate(92,244) scale(-1.4,1.4) rotate(255)"/>
+        <use href="#curl" transform="translate(78,254) scale(-1.3,1.3) rotate(275)"/>
+      </g>
+      <g stroke="#B85F22" stroke-width="1.1" fill="none" opacity=".45">
+        <path d="M40,222 C38,232 40,242 46,249"/>
+        <path d="M65,226 L65,252"/>
+        <path d="M90,222 C92,232 90,242 84,249"/>
+      </g>
+
+      <!-- big open, cheerful smile with a hint of teeth -->
+      <path d="M46,203 Q65,225 84,203 Q65,216 46,203 Z" fill="#FFFFFF" stroke="#3A2E1C" stroke-width="1.3"/>
+      <path d="M51,207 Q65,213 79,207" stroke="#3A2E1C" stroke-width=".9" fill="none" opacity=".4"/>
+
+      <!-- hat -- wide flared green brim, tall crown, dark band, ornate
+           gold buckle, and a shamrock like the reference art -->
+      <path d="M17,152 C17,142 35,135 65,135 C95,135 113,142 113,152 C113,160 95,165 65,165 C35,165 17,160 17,152 Z"
+            fill="url(#hatGradLep)" stroke="#0F3A1C" stroke-width="1.5"/>
+      <rect x="41" y="64" width="48" height="80" rx="8" fill="url(#hatGradLep)" stroke="#0F3A1C" stroke-width="1.5"/>
+      <path d="M50,76 Q54,100 47,122" stroke="#0F3A1C" stroke-width="1" opacity=".2" fill="none"/>
+      <path d="M80,74 Q76,98 82,120" stroke="#0F3A1C" stroke-width="1" opacity=".2" fill="none"/>
+      <rect x="41" y="112" width="48" height="14" fill="#2A1F14"/>
+      <rect x="56" y="110" width="18" height="18" rx="2" fill="url(#goldGrad)" stroke="#8A6A1E" stroke-width="1"/>
+      <rect x="61" y="115" width="8" height="8" rx="1" fill="#2A1F14"/>
+      <use href="#clover" fill="#2E9A4C" stroke="#0F3A1C" stroke-width=".8" transform="translate(34,96) scale(1.3) rotate(-12)"/>
+
+      <!-- a shamrock floating beside him, and a couple at his feet -->
+      <use href="#clover" fill="#2E9A4C" stroke="#155C2C" stroke-width=".7" transform="translate(12,215) scale(1.5) rotate(-8)"/>
+      <use href="#clover" fill="#2E9A4C" stroke="#155C2C" stroke-width=".6" transform="translate(20,352) scale(1.3) rotate(10)"/>
+      <use href="#clover" fill="#1E7A3C" stroke="#0F3A1C" stroke-width=".6" transform="translate(108,354) scale(1.1) rotate(-15)"/>
+    </svg>`;
+
+  // St. Patrick's Day, right corner — a rainbow arcing down to a pot of
+  // gold, coins spilling out, clovers scattered around the base.
+  const rainbowPotSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="rainbowGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#E8C34A" stop-opacity="0.3"/>
+          <stop offset="55%" stop-color="#2E9A4C" stop-opacity="0.15"/>
+          <stop offset="100%" stop-color="#2E9A4C" stop-opacity="0"/>
+        </radialGradient>
+        <radialGradient id="potGrad" cx="35%" cy="25%" r="80%">
+          <stop offset="0%" stop-color="#3A3A3A"/>
+          <stop offset="100%" stop-color="#141414"/>
+        </radialGradient>
+        <radialGradient id="coinGrad" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#F5DD7E"/>
+          <stop offset="100%" stop-color="#C9A227"/>
+        </radialGradient>
+        <g id="cloverR">
+          <path d="M0,0 C-1,-6 -6,-8 -8,-4 C-6,-1 -3,0 0,0 Z"/>
+          <path d="M0,0 C1,-6 6,-8 8,-4 C6,-1 3,0 0,0 Z"/>
+          <path d="M0,0 C-5,2 -6,7 -2,8 C0,5 0,2 0,0 Z"/>
+        </g>
+      </defs>
+
+      <ellipse cx="55" cy="290" rx="95" ry="150" fill="url(#rainbowGlow)"/>
+
+      <!-- rainbow, arcing down from off-canvas to the pot -->
+      <g fill="none" stroke-linecap="round">
+        <path d="M-10,40 C 50,10 110,50 96,150" stroke="#C6402F" stroke-width="9"/>
+        <path d="M-10,49 C 46,21 101,58 87,152" stroke="#E8863D" stroke-width="9"/>
+        <path d="M-10,58 C 42,32 92,66 78,154" stroke="#F0C929" stroke-width="9"/>
+        <path d="M-10,67 C 38,43 83,74 69,156" stroke="#2E9A4C" stroke-width="9"/>
+        <path d="M-10,76 C 34,54 74,82 60,158" stroke="#3E8BC4" stroke-width="9"/>
+        <path d="M-10,85 C 30,65 65,90 51,160" stroke="#8B5FA8" stroke-width="9"/>
+      </g>
+
+      <!-- pot of gold -->
+      <path d="M28,317 C26,333 34,345 55,345 C76,345 84,333 82,317 Z" fill="url(#potGrad)" stroke="#000000" stroke-width="1.5"/>
+      <ellipse cx="55" cy="317" rx="27" ry="8" fill="#050505"/>
+      <ellipse cx="55" cy="314" rx="24" ry="6.5" fill="url(#potGrad)" stroke="#000000" stroke-width="1"/>
+
+      <!-- coins spilling out -->
+      <g stroke="#8A6A1E" stroke-width="1">
+        <circle cx="40" cy="307" r="8" fill="url(#coinGrad)"/>
+        <circle cx="55" cy="301" r="9" fill="url(#coinGrad)"/>
+        <circle cx="70" cy="308" r="8" fill="url(#coinGrad)"/>
+        <circle cx="48" cy="315" r="7" fill="url(#coinGrad)"/>
+        <circle cx="62" cy="315" r="7" fill="url(#coinGrad)"/>
+        <circle cx="20" cy="335" r="6" fill="url(#coinGrad)"/>
+        <circle cx="90" cy="333" r="6.5" fill="url(#coinGrad)"/>
+      </g>
+
+      <!-- clovers scattered at the base -->
+      <use href="#cloverR" fill="#2E9A4C" stroke="#155C2C" stroke-width=".6" transform="translate(14,345) scale(1.2) rotate(8)"/>
+      <use href="#cloverR" fill="#1E7A3C" stroke="#0F3A1C" stroke-width=".6" transform="translate(100,341) scale(1.1) rotate(-12)"/>
+      <use href="#cloverR" fill="#2E9A4C" stroke="#155C2C" stroke-width=".6" transform="translate(78,347) scale(0.9) rotate(20)"/>
+    </svg>`;
+
+  // Easter, left corner — a plain, rugged cross on a grassy hill at dawn,
+  // with Easter lilies at the base. References the Christian meaning of
+  // the day: the cross, and the sunrise associated with the resurrection.
+  const easterCrossSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="dawnGlowL" cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#F5D9A8" stop-opacity="0.45"/>
+          <stop offset="55%" stop-color="#E8A8C0" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#E8A8C0" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="woodGradL" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#8A6A4A"/>
+          <stop offset="50%" stop-color="#6B4F35"/>
+          <stop offset="100%" stop-color="#8A6A4A"/>
+        </linearGradient>
+        <linearGradient id="hillGradL" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#8FB56E"/>
+          <stop offset="100%" stop-color="#5C8C46"/>
+        </linearGradient>
+        <path id="raySpike" d="M0,0 L-5,-70 L5,-70 Z"/>
+        <g id="easterLily">
+          <path d="M0,0 L-1,-38" stroke="#6FA85C" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path d="M-1,-30 C-9,-34 -13,-42 -9,-50" stroke="#6FA85C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M-14,-46 C-14,-58 -6,-67 0,-71 C6,-67 14,-58 14,-46 C14,-38 7,-34 0,-34 C-7,-34 -14,-38 -14,-46 Z"
+                fill="#FBF8F2" stroke="#D9CBB0" stroke-width="1"/>
+          <path d="M0,-71 C-3,-64 -3,-56 0,-50 C3,-56 3,-64 0,-71 Z" fill="#E8D9B8" opacity=".5"/>
+          <ellipse cx="0" cy="-50" rx="2.6" ry="4.5" fill="#E8C34A"/>
+        </g>
+      </defs>
+
+      <ellipse cx="55" cy="260" rx="95" ry="160" fill="url(#dawnGlowL)"/>
+
+      <!-- sunrise rays behind the cross -->
+      <g fill="#F5D9A8" opacity=".35">
+        <use href="#raySpike" transform="translate(65,131) rotate(-40) scale(.9)"/>
+        <use href="#raySpike" transform="translate(65,131) rotate(-20) scale(1.1)"/>
+        <use href="#raySpike" transform="translate(65,131) rotate(0) scale(1.2)"/>
+        <use href="#raySpike" transform="translate(65,131) rotate(20) scale(1.1)"/>
+        <use href="#raySpike" transform="translate(65,131) rotate(40) scale(.9)"/>
+        <use href="#raySpike" transform="translate(65,131) rotate(-60) scale(.75)"/>
+        <use href="#raySpike" transform="translate(65,131) rotate(60) scale(.75)"/>
+      </g>
+
+      <!-- grassy hill -->
+      <path d="M-10,400 C0,352 30,336 65,336 C100,336 128,352 138,400 Z" fill="url(#hillGradL)" stroke="#4A7038" stroke-width="1"/>
+
+      <!-- the cross, plain and rugged -->
+      <rect x="58" y="66" width="14" height="290" rx="2" fill="url(#woodGradL)" stroke="#4A3624" stroke-width="1.5"/>
+      <rect x="34" y="124" width="62" height="14" rx="2" fill="url(#woodGradL)" stroke="#4A3624" stroke-width="1.5"/>
+      <path d="M60,80 L70,80 M60,340 L70,340" stroke="#4A3624" stroke-width="1" opacity=".5"/>
+
+      <!-- lilies at the base -->
+      <use href="#easterLily" transform="translate(24,370) scale(1.05) rotate(-6)"/>
+      <use href="#easterLily" transform="translate(100,374) scale(0.95) rotate(8)"/>
+      <use href="#easterLily" transform="translate(60,382) scale(0.8) rotate(-3)"/>
+    </svg>`;
+
+  // Easter, right corner — the empty tomb: the stone rolled away, radiant
+  // light where the body should have been, and the folded linen grave
+  // cloth (John 20:6-7) left behind. Deliberately no figure — the empty
+  // tomb itself is the resurrection symbol, and it pairs with the left
+  // corner's cross without needing to depict anyone.
+  const easterTombSVG = `
+    <svg class="corner-art" viewBox="0 0 130 400" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="dawnGlowR" cx="50%" cy="45%" r="55%">
+          <stop offset="0%" stop-color="#F5D9A8" stop-opacity="0.45"/>
+          <stop offset="55%" stop-color="#E8A8C0" stop-opacity="0.18"/>
+          <stop offset="100%" stop-color="#E8A8C0" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="rockGradR" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#B0A896"/>
+          <stop offset="100%" stop-color="#7C7566"/>
+        </linearGradient>
+        <radialGradient id="tombLight" cx="50%" cy="35%" r="70%">
+          <stop offset="0%" stop-color="#FFF8E0"/>
+          <stop offset="60%" stop-color="#FFE9B8"/>
+          <stop offset="100%" stop-color="#F0C878"/>
+        </radialGradient>
+        <radialGradient id="stoneGrad" cx="32%" cy="26%" r="85%">
+          <stop offset="0%" stop-color="#E4D7AC"/>
+          <stop offset="100%" stop-color="#AE9C68"/>
+        </radialGradient>
+        <g id="easterLilyR">
+          <path d="M0,0 L-1,-34" stroke="#6FA85C" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+          <path d="M-12,-40 C-12,-51 -5,-59 0,-62 C5,-59 12,-51 12,-40 C12,-33 6,-30 0,-30 C-6,-30 -12,-33 -12,-40 Z"
+                fill="#FBF8F2" stroke="#D9CBB0" stroke-width="1"/>
+          <ellipse cx="0" cy="-44" rx="2.3" ry="4" fill="#E8C34A"/>
+        </g>
+      </defs>
+
+      <ellipse cx="60" cy="300" rx="95" ry="130" fill="url(#dawnGlowR)"/>
+
+      <!-- a craggy, irregular rock outcropping -- a jagged mix of
+           straight and gently curved segments at different heights,
+           rather than one smooth dome, so it reads as natural stone -->
+      <path d="M-10,400 L-10,306 C-8,283 -2,263 12,251 L26,259 L20,221
+               C26,201 36,193 44,205 L46,181
+               C52,161 66,157 72,175 L80,159
+               C92,165 100,183 96,205 L114,199
+               C126,213 134,241 132,269 L140,286 L140,400 Z"
+            fill="url(#rockGradR)" stroke="#5C5648" stroke-width="2" stroke-linejoin="round"/>
+      <path d="M8,342 Q20,302 14,272 M108,332 Q96,302 104,272 M58,212 Q68,197 78,204"
+            stroke="#8F8778" stroke-width="2" fill="none" opacity=".4"/>
+
+      <!-- the archway, carved into the rock -- a dark frame around a
+           radiant, empty interior, proportioned like an actual doorway
+           (rounded top, roughly as tall as it is wide) so it reads
+           clearly as a tomb entrance rather than a narrow slot -->
+      <path d="M34,398 L34,324 C34,300 90,300 90,324 L90,398 Z" fill="none" stroke="#4A4438" stroke-width="7"/>
+      <path d="M37,398 L37,325 C37,306 87,306 87,325 L87,398 Z" fill="url(#tombLight)"/>
+
+      <!-- the stone, rolled just aside from the entrance -- large enough
+           to read as the same door-sized stone that sealed the tomb, not
+           a pebble -- with a shallow groove showing the short distance it
+           travelled, and ring texture plus a highlight to keep it
+           reading as a separate, rounded, rolled object -->
+      <path d="M-8,394 Q9,388 26,394" stroke="#6B6558" stroke-width="2.5" fill="none" opacity=".5"/>
+      <ellipse cx="14" cy="382" rx="30" ry="10" fill="#000000" opacity=".14"/>
+      <ellipse cx="14" cy="357" rx="32" ry="34" fill="url(#stoneGrad)" stroke="#7A6E52" stroke-width="2.5"/>
+      <g stroke="#C4B78E" stroke-width="1.4" fill="none" opacity=".7">
+        <ellipse cx="14" cy="357" rx="22" ry="23"/>
+        <ellipse cx="14" cy="357" rx="11" ry="12"/>
+      </g>
+      <ellipse cx="4" cy="344" rx="8" ry="10" fill="#EDE2BE" opacity=".55"/>
+
+      <!-- the folded linen cloth, left behind, just inside the entrance -->
+      <path d="M50,392 C50,384 76,384 76,392 C76,397 68,399 63,398 C58,399 50,397 50,392 Z" fill="#F5EFE0" stroke="#D9CBB0" stroke-width="1"/>
+      <path d="M56,388 L56,393 M63,387 L63,393 M70,388 L70,393" stroke="#D9CBB0" stroke-width="1" opacity=".7"/>
+
+      <!-- a lily at the foot of the entrance -->
+      <use href="#easterLilyR" transform="translate(100,392) scale(0.9) rotate(8)"/>
+    </svg>`;
+
   // A string of lights swagged across the top of the page, behind the
   // header — Christmas only, and separate from the corner art. Full width
   // via a non-uniform viewBox (preserveAspectRatio="none"), so it stretches
@@ -760,10 +1355,13 @@
     if (themeId === 'halloween') return side === 'left' ? scarecrowSVG : catPumpkinsSVG;
     if (themeId === 'thanksgiving') return turkeySVG;
     if (themeId === 'christmas') return side === 'left' ? christmasTreeSVG : nativitySVG;
+    if (themeId === 'spring') return side === 'left' ? forsythiaSVG : redbudSVG;
+    if (themeId === 'st-patricks-day') return side === 'left' ? leprechaunSVG : rainbowPotSVG;
+    if (themeId === 'easter') return side === 'left' ? easterCrossSVG : easterTombSVG;
     return '';
   }
 
-  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas'];
+  const DECORATED_THEMES = ['fall', 'halloween', 'thanksgiving', 'winter', 'christmas', 'spring', 'st-patricks-day', 'easter'];
 
   // Settings/calendar refreshes re-call render() every few minutes with the
   // same theme id (see app.js's refreshThemeAndDisplaySettings). Skip the
@@ -780,8 +1378,10 @@
 
     if (!DECORATED_THEMES.includes(themeId)) return;
 
-    // Thanksgiving has no falling particles at all — just the turkey scene.
-    const count = themeId === 'thanksgiving' ? 0 : PARTICLE_COUNT;
+    // Thanksgiving, St. Patrick's Day, and Easter have no falling
+    // particles — just the corner scenes (falling shamrocks/coins or
+    // petals over the tomb scene would read as gimmicky).
+    const count = (themeId === 'thanksgiving' || themeId === 'st-patricks-day' || themeId === 'easter') ? 0 : PARTICLE_COUNT;
 
     for (let i = 0; i < count; i++) {
       const p = document.createElement('div');
@@ -793,6 +1393,7 @@
       p.className = 'particle ' + (
         themeId === 'fall' ? ('leaf l' + (1 + (i % 4))) :
         themeId === 'halloween' ? 'bat' :
+        themeId === 'spring' ? ('petal p' + (1 + (i % 3))) :
         'snowflake'
       );
       p.style.left = left + 'vw';
@@ -808,6 +1409,9 @@
         const sz = 20 + Math.random() * 10;
         p.style.width = sz + 'px'; p.style.height = (sz * 0.55) + 'px';
         p.innerHTML = batParticleSVG;
+      } else if (themeId === 'spring') {
+        const sz = 8 + Math.random() * 6;
+        p.style.width = sz + 'px'; p.style.height = sz + 'px';
       }
       layer.appendChild(p);
     }
