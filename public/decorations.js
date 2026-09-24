@@ -258,9 +258,9 @@
           <use href="#strawSpike" transform="rotate(210)"/>
         </g>
         <g transform="translate(62,378)">
-          <use href="#strawSpike" transform="rotate(-30)"/><use href="#strawSpike" transform="rotate(-15)"/>
-          <use href="#strawSpike" transform="rotate(0)"/><use href="#strawSpike" transform="rotate(15)"/>
-          <use href="#strawSpike" transform="rotate(30)"/>
+          <use href="#strawSpike" transform="rotate(150)"/><use href="#strawSpike" transform="rotate(165)"/>
+          <use href="#strawSpike" transform="rotate(180)"/><use href="#strawSpike" transform="rotate(195)"/>
+          <use href="#strawSpike" transform="rotate(210)"/>
         </g>
       </g>
 
