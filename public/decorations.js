@@ -1979,17 +1979,26 @@
     ['left', 'right'].forEach((side) => {
       const filePath = cornerArtPathFor(themeId, side);
       if (filePath) {
+        const fallbackToLegacy = () => {
+          // The active theme may have changed again while this request was
+          // in flight (rapid clicking through the settings preview, say) --
+          // discard a stale response rather than dropping art for a theme
+          // that isn't showing anymore into the live layer.
+          if (myGeneration !== renderGeneration) return;
+          // No file-based art for this side yet (a theme can have file art
+          // on one corner and still be using the legacy hand-coded piece on
+          // the other) -- fall back rather than leaving the corner empty.
+          const fallbackHtml = cornerArtFor(themeId, side);
+          if (fallbackHtml) attachCornerArt(fallbackHtml, side);
+        };
         fetch(filePath)
           .then((r) => (r.ok ? r.text() : ''))
           .then((svgText) => {
-            // The active theme may have changed again while this request
-            // was in flight (rapid clicking through the settings preview,
-            // say) -- discard a stale response rather than dropping art
-            // for a theme that isn't showing anymore into the live layer.
-            if (!svgText || myGeneration !== renderGeneration) return;
+            if (myGeneration !== renderGeneration) return;
+            if (!svgText) return fallbackToLegacy();
             attachCornerArt(svgText, side, true);
           })
-          .catch(() => {});
+          .catch(fallbackToLegacy);
         return;
       }
       const html = cornerArtFor(themeId, side);
