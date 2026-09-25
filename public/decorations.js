@@ -16,11 +16,14 @@
   'use strict';
 
   // Kept deliberately restrained for a display that runs unattended, all
-  // day, in the kitchen: fewer/fainter particles and lower corner-art
-  // opacity than the "bolder" option explored in the mockup.
+  // day, in the kitchen: fewer/fainter particles than the "bolder" option
+  // explored in the mockup.
   const PARTICLE_COUNT = 11;
   const PARTICLE_MAX_OPACITY = 0.42;
-  const CORNER_OPACITY = 0.62;
+  // Corner-art opacity dimming is off for now (was 0.62) -- richer,
+  // file-based illustration art loses too much vibrancy at that dim level.
+  // Revisit once there's a broader set of file-based art to judge against.
+  const CORNER_OPACITY = 1;
 
   // How much of the corner-art box's width a file-based piece is allowed to
   // actually use, measured from the outer (visible) edge -- the rest is
