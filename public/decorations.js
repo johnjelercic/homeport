@@ -1848,7 +1848,7 @@
   // were already built and approved before this pipeline existed, and
   // migrating already-shipped art would only add regression risk for no
   // visible benefit. New themes are added here, not there.
-  const FILE_ART_THEMES = [];
+  const FILE_ART_THEMES = ['halloween'];
 
   function cornerArtPathFor(themeId, side) {
     if (!FILE_ART_THEMES.includes(themeId)) return null;
