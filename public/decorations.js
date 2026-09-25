@@ -22,6 +22,15 @@
   const PARTICLE_MAX_OPACITY = 0.42;
   const CORNER_OPACITY = 0.62;
 
+  // How much of the corner-art box's width a file-based piece is allowed to
+  // actually use, measured from the outer (visible) edge -- the rest is
+  // left as headroom that falls behind the calendar's opaque day-cells.
+  // Established empirically: local x-coordinates past about 80 of the
+  // 130-wide viewBox convention this app uses elsewhere start disappearing
+  // behind the grid. Used by the auto-fit step below so a dropped-in file
+  // doesn't have to be hand-measured against that rule every time.
+  const SAFE_ZONE_FRACTION = 80 / 130;
+
   // A small standalone bat silhouette for Halloween's falling particles
   // (the counterpart to Fall's leaves / Winter's snow).
   const batParticleSVG = `<svg viewBox="0 0 32 18" xmlns="http://www.w3.org/2000/svg">
@@ -1923,12 +1932,43 @@
       layer.appendChild(p);
     }
 
-    function attachCornerArt(rawHtml, side) {
+    function attachCornerArt(rawHtml, side, autoFit) {
       const wrap = document.createElement('div');
       wrap.innerHTML = rawHtml.trim();
       const svg = wrap.firstElementChild;
       if (!svg) return;
-      svg.classList.add(side);
+      svg.classList.add('corner-art', side);
+
+      if (autoFit) {
+        // File-based art (see FILE_ART_THEMES) may come from a tool that
+        // exported a much bigger canvas than the actual drawing -- pad
+        // around the artist's artboard, extra breathing room, whatever.
+        // Rather than requiring every file to be hand-measured and
+        // hand-fitted to this app's viewBox/safe-zone convention before it
+        // can be dropped in, measure what's actually drawn and fit that.
+        svg.style.opacity = '0';
+        layer.appendChild(svg);
+        try {
+          const bbox = svg.getBBox();
+          if (bbox.width > 0 && bbox.height > 0) {
+            // Widen the viewBox (without touching its height) so the real
+            // artwork only ever fills SAFE_ZONE_FRACTION of the box's
+            // width, with xMinYMax alignment pinning it to the outer edge
+            // and the ground -- the same corner these apps' hand-drawn
+            // pieces sit in, just computed instead of eyeballed.
+            const paddedWidth = bbox.width / SAFE_ZONE_FRACTION;
+            svg.setAttribute('viewBox', `${bbox.x} ${bbox.y} ${paddedWidth} ${bbox.height}`);
+            svg.setAttribute('preserveAspectRatio', 'xMinYMax meet');
+          }
+        } catch (e) {
+          // getBBox can throw on a detached or not-yet-laid-out element in
+          // some browsers -- fall back to the file's own viewBox as
+          // authored rather than leaving nothing on screen.
+        }
+        svg.style.opacity = CORNER_OPACITY;
+        return;
+      }
+
       svg.style.opacity = CORNER_OPACITY;
       layer.appendChild(svg);
     }
@@ -1944,7 +1984,7 @@
             // say) -- discard a stale response rather than dropping art
             // for a theme that isn't showing anymore into the live layer.
             if (!svgText || myGeneration !== renderGeneration) return;
-            attachCornerArt(svgText, side);
+            attachCornerArt(svgText, side, true);
           })
           .catch(() => {});
         return;
