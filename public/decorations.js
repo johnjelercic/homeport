@@ -28,11 +28,13 @@
   // How much of the corner-art box's width a file-based piece is allowed to
   // actually use, measured from the outer (visible) edge -- the rest is
   // left as headroom that falls behind the calendar's opaque day-cells.
-  // Established empirically: local x-coordinates past about 80 of the
-  // 130-wide viewBox convention this app uses elsewhere start disappearing
-  // behind the grid. Used by the auto-fit step below so a dropped-in file
-  // doesn't have to be hand-measured against that rule every time.
-  const SAFE_ZONE_FRACTION = 80 / 130;
+  // Raised from the legacy hand-coded pieces' ~0.615 (80/130) convention to
+  // 0.85 deliberately: file-based art is meant to read as bigger and bolder,
+  // with an outstretched hand or edge tucking under the calendar for a
+  // layered look, rather than stopping just short of it. Used by the
+  // auto-fit step below so a dropped-in file doesn't have to be
+  // hand-measured to get this.
+  const SAFE_ZONE_FRACTION = 0.85;
 
   // A small standalone bat silhouette for Halloween's falling particles
   // (the counterpart to Fall's leaves / Winter's snow).
