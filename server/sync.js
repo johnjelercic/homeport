@@ -63,6 +63,15 @@ const setSyncError = db.prepare(`
 `);
 
 async function syncCalendar(calendar) {
+  // OAuth-backed calendars (Microsoft Graph today) have their own sync
+  // engine — delta-query polling rather than a full ICS refetch — so this
+  // just delegates rather than duplicating that logic here. Required
+  // lazily (not at module load) purely to avoid a require cycle if
+  // msgraph.js ever needs anything from sync.js in the future.
+  if (calendar.source_type === 'msgraph') {
+    return require('./msgraph').syncCalendarFromGraph(calendar);
+  }
+
   const syncStartedAt = nowMarker.get().t;
   try {
     const text = await fetchIcsText(calendar.url);

@@ -43,6 +43,7 @@
           <button id="navToday" class="today-btn">Today</button>
           <button id="navNext" aria-label="Next">›</button>
         </div>
+        <button type="button" id="newAppointmentBtn" class="settings-link" title="New appointment" aria-label="New appointment" hidden>＋</button>
         <a href="/settings.html" class="settings-link" title="Settings" aria-label="Settings">⚙</a>
       </div>
     </div>
@@ -81,6 +82,56 @@
         <iframe id="modalMapFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade" sandbox="allow-scripts allow-same-origin" title="Event location map"></iframe>
       </div>
       <div class="modal-description" id="modalDescription"></div>
+      <div class="modal-row modal-edit-row" id="modalEditRow" hidden>
+        <button type="button" class="ghost-btn" id="modalEditBtn">Edit</button>
+        <button type="button" class="danger-btn" id="modalDeleteBtn">Delete</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="appointmentModal" hidden>
+  <div class="modal-card">
+    <div class="modal-close"><button id="closeAppointmentModal" aria-label="Close">✕</button></div>
+    <div class="modal-body">
+      <h2 class="modal-title" id="appointmentModalTitle">New appointment</h2>
+      <form class="add-form" id="appointmentForm">
+        <div class="field">
+          <label for="apptCalendar">Calendar</label>
+          <select id="apptCalendar" required></select>
+        </div>
+        <div class="field">
+          <label for="apptTitle">Title</label>
+          <input type="text" id="apptTitle" placeholder="e.g. Dentist appointment" />
+        </div>
+        <div class="field checkbox-field">
+          <label><input type="checkbox" id="apptAllDay" /> All day</label>
+        </div>
+        <div class="field">
+          <label for="apptDate">Date</label>
+          <input type="date" id="apptDate" required />
+        </div>
+        <div class="appt-time-row" id="apptTimeRow">
+          <div class="field">
+            <label for="apptStartTime">Starts</label>
+            <input type="time" id="apptStartTime" />
+          </div>
+          <div class="field">
+            <label for="apptEndTime">Ends</label>
+            <input type="time" id="apptEndTime" />
+          </div>
+        </div>
+        <div class="field">
+          <label for="apptLocation">Location</label>
+          <input type="text" id="apptLocation" placeholder="Optional" />
+        </div>
+        <div class="field">
+          <label for="apptDetail">Detail</label>
+          <textarea id="apptDetail" rows="3" placeholder="Optional notes"></textarea>
+        </div>
+        <button type="submit" class="primary-btn" id="apptSaveBtn">Save</button>
+        <div class="form-msg" id="apptFormMsg"></div>
+      </form>
     </div>
   </div>
 </div>

@@ -17,13 +17,34 @@ db.pragma('journal_mode = WAL');
 db.pragma('foreign_keys = ON');
 
 db.exec(`
+-- One row per connected OAuth account (currently just Microsoft/Outlook).
+-- token_cache holds an encrypted, serialized MSAL token cache (see
+-- server/crypto.js + server/msgraph.js) rather than a raw refresh token
+-- directly, so MSAL's own cache/refresh bookkeeping can be persisted and
+-- restored as-is. "provider" is deliberately free text (not an enum) so a
+-- future Google account can reuse this same table without a migration.
+CREATE TABLE IF NOT EXISTS oauth_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  provider TEXT NOT NULL,
+  display_name TEXT,
+  email TEXT,
+  token_cache TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'ok', -- 'ok' | 'needs_reauth'
+  last_error TEXT,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS calendars (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   name TEXT NOT NULL,
-  url TEXT NOT NULL,
+  url TEXT,                          -- ICS calendars only; NULL for OAuth-backed calendars
   color TEXT NOT NULL DEFAULT '#3B6E8F',
   visible INTEGER NOT NULL DEFAULT 1,
   color_rules TEXT NOT NULL DEFAULT '[]', -- JSON array of {keyword, color} — per-event color overrides
+  source_type TEXT NOT NULL DEFAULT 'ics', -- 'ics' | 'msgraph'
+  oauth_account_id INTEGER REFERENCES oauth_accounts(id) ON DELETE CASCADE,
+  graph_calendar_id TEXT,            -- Microsoft Graph calendar id — msgraph calendars only
+  delta_link TEXT,                   -- Graph delta-query cursor — msgraph calendars only
   last_synced_at TEXT,
   last_sync_status TEXT,
   last_sync_error TEXT,
@@ -65,6 +86,48 @@ CREATE TABLE IF NOT EXISTS settings (
 const calendarColumns = db.prepare(`PRAGMA table_info(calendars)`).all().map((c) => c.name);
 if (!calendarColumns.includes('color_rules')) {
   db.exec(`ALTER TABLE calendars ADD COLUMN color_rules TEXT NOT NULL DEFAULT '[]'`);
+}
+
+// Migration: relax calendars.url to nullable and add the columns needed
+// for OAuth-backed (non-ICS) calendars, if upgrading from a DB created
+// before oauth_accounts existed. Guarded so it's a no-op on fresh installs
+// (whose CREATE TABLE above already matches this shape) and safe to run
+// every boot. SQLite can't ALTER a column's NOT NULL constraint in place,
+// so this recreates the table — foreign_keys is turned off for the
+// duration since `events` references `calendars` by name and would
+// otherwise trip its FK check the moment the RENAME makes that name
+// disappear, even mid-transaction.
+const calendarsInfo = db.prepare(`PRAGMA table_info(calendars)`).all();
+const urlCol = calendarsInfo.find((c) => c.name === 'url');
+if (urlCol && urlCol.notnull) {
+  db.pragma('foreign_keys = OFF');
+  db.transaction(() => {
+    db.exec(`ALTER TABLE calendars RENAME TO calendars_old;`);
+    db.exec(`
+      CREATE TABLE calendars (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        url TEXT,
+        color TEXT NOT NULL DEFAULT '#3B6E8F',
+        visible INTEGER NOT NULL DEFAULT 1,
+        color_rules TEXT NOT NULL DEFAULT '[]',
+        source_type TEXT NOT NULL DEFAULT 'ics',
+        oauth_account_id INTEGER REFERENCES oauth_accounts(id) ON DELETE CASCADE,
+        graph_calendar_id TEXT,
+        delta_link TEXT,
+        last_synced_at TEXT,
+        last_sync_status TEXT,
+        last_sync_error TEXT,
+        created_at TEXT NOT NULL DEFAULT (datetime('now'))
+      );
+    `);
+    db.exec(`
+      INSERT INTO calendars (id, name, url, color, visible, color_rules, source_type, last_synced_at, last_sync_status, last_sync_error, created_at)
+      SELECT id, name, url, color, visible, color_rules, 'ics', last_synced_at, last_sync_status, last_sync_error, created_at FROM calendars_old;
+    `);
+    db.exec(`DROP TABLE calendars_old;`);
+  })();
+  db.pragma('foreign_keys = ON');
 }
 
 module.exports = db;

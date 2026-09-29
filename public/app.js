@@ -12,6 +12,7 @@
     anchor: startOfDay(new Date()), // the date currently being viewed
     calendars: [],                  // [{id, name, color, visible}]
     eventsByDay: new Map(),         // 'YYYY-MM-DD' -> [occurrence, ...]
+    writableCalendars: [],          // calendars an appointment can actually be created/edited on (source_type === 'msgraph')
   };
 
   // The last calendar day (local) we checked the real clock against —
@@ -75,6 +76,11 @@
   async function loadCalendars() {
     const res = await fetch('/api/calendars');
     state.calendars = await res.json();
+    state.writableCalendars = state.calendars.filter((c) => c.source_type === 'msgraph');
+    // The header's "+" only makes sense once there's somewhere it could
+    // actually save an appointment to — no point showing an action that
+    // can only ever fail with "connect a Microsoft account first."
+    document.getElementById('newAppointmentBtn').hidden = state.writableCalendars.length === 0;
     renderLegend();
   }
 
@@ -562,7 +568,13 @@
     }
   }
 
+  // The occurrence currently shown in the view modal — kept so the
+  // Edit/Delete buttons (wired once, in wire()) know what they're acting
+  // on without having to re-thread `occ` through separate handlers.
+  let viewedOccurrence = null;
+
   function openEventModal(occ) {
+    viewedOccurrence = occ;
     const eventColor = occ.color || colorFor(occ.calendar_id);
     const baseColor = colorFor(occ.calendar_id);
     document.getElementById('modalAccent').style.background = eventColor;
@@ -589,7 +601,157 @@
       document.getElementById('modalMapFrame').src = ''; // stop loading / drop any stale map
     }
     document.getElementById('modalDescription').textContent = occ.description || '';
+    // Recurring Outlook events and anything from a read-only (ICS) calendar
+    // aren't editable from Homeport yet (see server/index.js's PUT/DELETE
+    // /api/events) — the server marks each occurrence accordingly and this
+    // just mirrors that in the UI rather than offering a button that would
+    // always fail.
+    document.getElementById('modalEditRow').hidden = !occ.editable;
     document.getElementById('eventModal').hidden = false;
+  }
+
+  // ---------- create / edit appointment ----------
+
+  // The occurrence being edited, or null when the form is in "create" mode.
+  let editingOccurrence = null;
+
+  function populateApptCalendarSelect(selectedId) {
+    const select = document.getElementById('apptCalendar');
+    select.innerHTML = state.writableCalendars
+      .map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`)
+      .join('');
+    if (selectedId != null) select.value = String(selectedId);
+  }
+
+  function applyAllDayFieldVisibility() {
+    const allDay = document.getElementById('apptAllDay').checked;
+    document.getElementById('apptTimeRow').hidden = allDay;
+  }
+
+  function pad2(n) { return String(n).padStart(2, '0'); }
+  function localTimeValue(d) { return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
+
+  // Opens the appointment form. With no `occ`, it's a fresh appointment
+  // defaulted to whatever day is currently in view; passing an existing
+  // (editable) occurrence switches to edit mode, prefilled from it.
+  function openAppointmentModal(occ) {
+    if (state.writableCalendars.length === 0) return; // shouldn't be reachable — the "+" is hidden in this case too
+    editingOccurrence = occ || null;
+
+    document.getElementById('appointmentModalTitle').textContent = occ ? 'Edit appointment' : 'New appointment';
+    document.getElementById('apptSaveBtn').textContent = occ ? 'Save changes' : 'Save';
+    document.getElementById('apptFormMsg').textContent = '';
+    document.getElementById('apptFormMsg').className = 'form-msg';
+
+    populateApptCalendarSelect(occ ? occ.calendar_id : (state.writableCalendars[0] && state.writableCalendars[0].id));
+    // An existing appointment always stays on the calendar it's already
+    // on — Graph has no "move to a different calendar" operation short of
+    // delete-and-recreate, which isn't worth the data loss risk (and
+    // complexity) for v1.
+    document.getElementById('apptCalendar').disabled = !!occ;
+
+    const allDayInput = document.getElementById('apptAllDay');
+    const dateInput = document.getElementById('apptDate');
+    const startInput = document.getElementById('apptStartTime');
+    const endInput = document.getElementById('apptEndTime');
+
+    if (occ) {
+      const start = new Date(occ.start);
+      const end = new Date(occ.end);
+      allDayInput.checked = !!occ.all_day;
+      // All-day dates are UTC-anchored throughout this app (see the
+      // utcYmd comment near the top of this file) — read the date the
+      // same way here so editing an all-day event doesn't shift it a day
+      // for anyone west of UTC.
+      dateInput.value = occ.all_day ? utcYmd(start) : localYmd(start);
+      startInput.value = occ.all_day ? '' : localTimeValue(start);
+      endInput.value = occ.all_day ? '' : localTimeValue(end);
+      document.getElementById('apptTitle').value = occ.summary && occ.summary !== '(No title)' ? occ.summary : '';
+      document.getElementById('apptLocation').value = occ.location || '';
+      document.getElementById('apptDetail').value = occ.description || '';
+    } else {
+      allDayInput.checked = false;
+      dateInput.value = localYmd(state.anchor);
+      startInput.value = '09:00';
+      endInput.value = '10:00';
+      document.getElementById('apptTitle').value = '';
+      document.getElementById('apptLocation').value = '';
+      document.getElementById('apptDetail').value = '';
+    }
+    applyAllDayFieldVisibility();
+
+    document.getElementById('eventModal').hidden = true; // if opened via Edit from the view modal
+    document.getElementById('appointmentModal').hidden = false;
+  }
+
+  function closeAppointmentModal() {
+    document.getElementById('appointmentModal').hidden = true;
+    editingOccurrence = null;
+  }
+
+  async function submitAppointmentForm(e) {
+    e.preventDefault();
+    const msg = document.getElementById('apptFormMsg');
+    msg.textContent = '';
+    msg.className = 'form-msg';
+
+    const calendarId = Number(document.getElementById('apptCalendar').value);
+    const title = document.getElementById('apptTitle').value.trim();
+    const location = document.getElementById('apptLocation').value.trim();
+    const detail = document.getElementById('apptDetail').value.trim();
+    const allDay = document.getElementById('apptAllDay').checked;
+    const date = document.getElementById('apptDate').value;
+    if (!date) { msg.textContent = 'Pick a date.'; msg.classList.add('error'); return; }
+
+    let start, end;
+    if (allDay) {
+      // Exclusive end, one UTC day later — matches how every other
+      // all-day event in this app (ICS or Graph-synced) is stored.
+      start = `${date}T00:00:00.000Z`;
+      end = addUtcDays(new Date(start), 1).toISOString();
+    } else {
+      const startTime = document.getElementById('apptStartTime').value;
+      const endTime = document.getElementById('apptEndTime').value;
+      if (!startTime || !endTime) { msg.textContent = 'Pick a start and end time, or check "All day".'; msg.classList.add('error'); return; }
+      // Interpreted as local time by the Date constructor (no "Z"), which
+      // is what's wanted here — the household and this display share one
+      // timezone, exactly like every other timed event already shown.
+      start = new Date(`${date}T${startTime}:00`);
+      end = new Date(`${date}T${endTime}:00`);
+      if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000); // treat as crossing midnight rather than rejecting
+      start = start.toISOString();
+      end = end.toISOString();
+    }
+
+    const payload = { calendar_id: calendarId, title, detail, location, all_day: allDay, start, end };
+    const saveBtn = document.getElementById('apptSaveBtn');
+    saveBtn.disabled = true;
+    try {
+      const url = editingOccurrence ? `/api/events/${editingOccurrence.calendar_id}/${encodeURIComponent(editingOccurrence.uid)}` : '/api/events';
+      const method = editingOccurrence ? 'PUT' : 'POST';
+      const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        msg.textContent = body.error || 'Could not save this appointment.';
+        msg.classList.add('error');
+        return;
+      }
+      closeAppointmentModal();
+      loadEvents();
+    } catch (err) {
+      msg.textContent = 'Could not reach the server — please try again.';
+      msg.classList.add('error');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  }
+
+  async function deleteViewedOccurrence() {
+    if (!viewedOccurrence || !viewedOccurrence.editable) return;
+    if (!confirm(`Delete "${viewedOccurrence.summary || '(No title)'}"?`)) return;
+    await fetch(`/api/events/${viewedOccurrence.calendar_id}/${encodeURIComponent(viewedOccurrence.uid)}`, { method: 'DELETE' });
+    document.getElementById('eventModal').hidden = true;
+    loadEvents();
   }
 
   function openDayModal(day, dayEvents) {
@@ -756,11 +918,21 @@
     });
     document.getElementById('eventModal').addEventListener('click', (e) => { if (e.target.id === 'eventModal') e.currentTarget.hidden = true; });
     document.getElementById('dayModal').addEventListener('click', (e) => { if (e.target.id === 'dayModal') e.currentTarget.hidden = true; });
+
+    document.getElementById('newAppointmentBtn').addEventListener('click', () => openAppointmentModal(null));
+    document.getElementById('modalEditBtn').addEventListener('click', () => openAppointmentModal(viewedOccurrence));
+    document.getElementById('modalDeleteBtn').addEventListener('click', deleteViewedOccurrence);
+    document.getElementById('closeAppointmentModal').addEventListener('click', closeAppointmentModal);
+    document.getElementById('appointmentModal').addEventListener('click', (e) => { if (e.target.id === 'appointmentModal') closeAppointmentModal(); });
+    document.getElementById('appointmentForm').addEventListener('submit', submitAppointmentForm);
+    document.getElementById('apptAllDay').addEventListener('change', applyAllDayFieldVisibility);
+
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
         document.getElementById('eventModal').hidden = true;
         document.getElementById('dayModal').hidden = true;
         document.getElementById('weatherModal').hidden = true;
+        document.getElementById('appointmentModal').hidden = true;
       }
     });
   }

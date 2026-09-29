@@ -7,6 +7,7 @@ const multer = require('multer');
 const db = require('./db');
 const { syncAllCalendars } = require('./sync');
 const { expandEvents } = require('./expand');
+const msgraph = require('./msgraph');
 
 const app = express();
 app.use(express.json());
@@ -118,6 +119,58 @@ app.post('/api/sync', async (req, res) => {
   res.json({ results });
 });
 
+// ---------- Microsoft account connect (OAuth, read/write calendars) ----------
+//
+// Uses the OAuth 2.0 Device Code flow rather than the more common
+// browser-redirect Authorization Code flow — see the comment above
+// startConnect() in server/msgraph.js for why: Homeport's Settings page is
+// normally opened from a phone/laptop on the LAN, not literally
+// "localhost", which rules out Microsoft's redirect-URI loopback
+// exemption. Device code needs no redirect URI at all: the person is
+// shown a one-time code and a link, completes sign-in on any device, and
+// this just polls in the background until that finishes.
+
+function accountsWithCalendars() {
+  // Select every column the front-end's calendar card (shared with the
+  // ICS list — see renderCalendarCard in settings.js) actually reads —
+  // color, visible and color_rules included — not just the account-linkage
+  // ones, and run color_rules through the same parser /api/calendars uses
+  // so both lists hand the UI an identical shape.
+  const calendarsByAccount = db.prepare(
+    `SELECT * FROM calendars WHERE source_type = 'msgraph'`
+  ).all().map(withParsedRules);
+  return msgraph.listAccounts().map((acct) => ({
+    ...acct,
+    calendars: calendarsByAccount.filter((c) => c.oauth_account_id === acct.id)
+  }));
+}
+
+app.get('/api/oauth/accounts', (req, res) => {
+  res.json({ configured: msgraph.isConfigured(), accounts: accountsWithCalendars() });
+});
+
+app.post('/api/oauth/microsoft/connect', (req, res) => {
+  try {
+    const connectId = msgraph.startConnect();
+    res.status(202).json({ connectId });
+  } catch (e) {
+    res.status(400).json({ error: String(e.message || e) });
+  }
+});
+
+app.get('/api/oauth/microsoft/connect/:connectId', (req, res) => {
+  const state = msgraph.getConnectStatus(req.params.connectId);
+  if (!state) return res.status(404).json({ error: 'Unknown or expired connect attempt' });
+  res.json(state);
+});
+
+app.delete('/api/oauth/accounts/:id', (req, res) => {
+  // Cascades to that account's calendars (and their events) via
+  // calendars.oauth_account_id ON DELETE CASCADE.
+  msgraph.deleteAccount(Number(req.params.id));
+  res.status(204).end();
+});
+
 // ---------- Events ----------
 
 app.get('/api/events', (req, res) => {
@@ -139,7 +192,7 @@ app.get('/api/events', (req, res) => {
   const padded = new Date(rangeStart.getTime() - 400 * 24 * 60 * 60 * 1000).toISOString();
   const rows = db
     .prepare(
-      `SELECT e.*, c.name as calendar_name, c.color as calendar_color, c.color_rules as calendar_color_rules
+      `SELECT e.*, c.name as calendar_name, c.color as calendar_color, c.color_rules as calendar_color_rules, c.source_type as calendar_source_type
        FROM events e JOIN calendars c ON c.id = e.calendar_id
        WHERE c.visible = 1 AND (e.rrule IS NOT NULL OR e.start_utc >= ?)`
     )
@@ -168,11 +221,86 @@ app.get('/api/events', (req, res) => {
       ...occ,
       calendar_name: row ? row.calendar_name : null,
       calendar_color: row ? row.calendar_color : null,
-      color: colorForOccurrence(occ, row)
+      color: colorForOccurrence(occ, row),
+      // Editable from Homeport only for non-recurring events on a
+      // Graph-backed calendar — recurring-series editing (and per-
+      // occurrence exceptions) needs real bidirectional recurrence
+      // mapping that v1 doesn't attempt yet, so those stay view-only.
+      editable: !!(row && row.calendar_source_type === 'msgraph' && !row.rrule)
     };
   });
 
   res.json(out);
+});
+
+app.post('/api/events', async (req, res) => {
+  const { calendar_id, title, detail, location, all_day, start, end } = req.body || {};
+  const calendar = db.prepare('SELECT * FROM calendars WHERE id = ?').get(Number(calendar_id));
+  if (!calendar) return res.status(404).json({ error: 'No such calendar' });
+  if (calendar.source_type !== 'msgraph') {
+    return res.status(400).json({ error: 'This calendar is read-only (subscribed via ICS link) — new appointments can only be added to a connected Microsoft account calendar.' });
+  }
+  if (!start || !end || isNaN(new Date(start)) || isNaN(new Date(end))) {
+    return res.status(400).json({ error: 'start and end (ISO dates) are required' });
+  }
+  if (new Date(end) <= new Date(start)) {
+    return res.status(400).json({ error: 'end must be after start' });
+  }
+
+  try {
+    const row = await msgraph.createEvent(calendar, { title, detail, location, allDay: !!all_day, start, end });
+    res.status(201).json(row);
+  } catch (e) {
+    res.status(400).json({ error: String(e.message || e) });
+  }
+});
+
+app.put('/api/events/:calendarId/:eventId', async (req, res) => {
+  const calendar = db.prepare('SELECT * FROM calendars WHERE id = ?').get(Number(req.params.calendarId));
+  if (!calendar) return res.status(404).json({ error: 'No such calendar' });
+  if (calendar.source_type !== 'msgraph') {
+    return res.status(400).json({ error: 'This calendar is read-only.' });
+  }
+  const existing = db.prepare('SELECT * FROM events WHERE calendar_id = ? AND id = ?').get(calendar.id, req.params.eventId);
+  if (!existing) return res.status(404).json({ error: 'No such event' });
+  if (existing.rrule) {
+    return res.status(400).json({ error: 'Editing a recurring event from Homeport isn’t supported yet — make this change in Outlook directly.' });
+  }
+
+  const { title, detail, location, all_day, start, end } = req.body || {};
+  if (!start || !end || isNaN(new Date(start)) || isNaN(new Date(end))) {
+    return res.status(400).json({ error: 'start and end (ISO dates) are required' });
+  }
+  if (new Date(end) <= new Date(start)) {
+    return res.status(400).json({ error: 'end must be after start' });
+  }
+
+  try {
+    const row = await msgraph.updateEvent(calendar, req.params.eventId, { title, detail, location, allDay: !!all_day, start, end });
+    res.json(row);
+  } catch (e) {
+    res.status(400).json({ error: String(e.message || e) });
+  }
+});
+
+app.delete('/api/events/:calendarId/:eventId', async (req, res) => {
+  const calendar = db.prepare('SELECT * FROM calendars WHERE id = ?').get(Number(req.params.calendarId));
+  if (!calendar) return res.status(404).json({ error: 'No such calendar' });
+  if (calendar.source_type !== 'msgraph') {
+    return res.status(400).json({ error: 'This calendar is read-only.' });
+  }
+  const existing = db.prepare('SELECT * FROM events WHERE calendar_id = ? AND id = ?').get(calendar.id, req.params.eventId);
+  if (!existing) return res.status(404).json({ error: 'No such event' });
+  if (existing.rrule) {
+    return res.status(400).json({ error: 'Deleting a recurring event from Homeport isn’t supported yet — make this change in Outlook directly.' });
+  }
+
+  try {
+    await msgraph.deleteEvent(calendar, req.params.eventId);
+    res.status(204).end();
+  } catch (e) {
+    res.status(400).json({ error: String(e.message || e) });
+  }
 });
 
 // ---------- Themes & settings ----------

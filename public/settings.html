@@ -33,6 +33,31 @@
       </div>
     </div>
 
+    <h2 class="section-title">Connected accounts</h2>
+    <p style="font-size:14px; color:var(--ink-soft); line-height:1.6; margin:0 0 14px;">
+      Connect a Microsoft (Outlook) account to create and edit appointments from Homeport itself,
+      in addition to just viewing them. Each connected account adds its default calendar; more
+      accounts — for example, one per family member — can be connected the same way.
+    </p>
+    <div class="cal-list" id="oauthAccountList"></div>
+    <div class="empty-note" id="oauthEmptyNote" hidden>No Microsoft accounts connected yet.</div>
+    <div class="empty-note" id="oauthNotConfiguredNote" hidden>
+      Connecting a Microsoft account isn't set up on this server yet — it needs an
+      <code>MSGRAPH_CLIENT_ID</code> environment variable from a free Microsoft Entra app
+      registration. Ask whoever manages this Homeport installation to add it.
+    </div>
+    <button type="button" class="primary-btn" id="connectMicrosoftBtn">Connect a Microsoft account</button>
+
+    <div class="modal-backdrop" id="oauthConnectModal" hidden>
+      <div class="modal-card">
+        <div class="modal-close"><button id="closeOauthConnectModal" aria-label="Close">✕</button></div>
+        <div class="modal-body">
+          <h2 class="modal-title">Connect a Microsoft account</h2>
+          <div id="oauthConnectContent"></div>
+        </div>
+      </div>
+    </div>
+
     <div style="display:flex; justify-content:space-between; align-items:center;">
       <h2 class="section-title" style="margin:0;">Subscribed calendars</h2>
       <button class="sync-all-btn" id="syncAllBtn">Sync now</button>

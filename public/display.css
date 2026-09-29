@@ -989,3 +989,76 @@
   font-weight: 600;
   text-shadow: 0 1px 6px rgba(0,0,0,0.5);
 }
+
+/* ---------- New/edit appointment modal ---------- */
+/* Mirrors settings.css's .add-form/.field/.primary-btn look (that
+   stylesheet isn't loaded on this page) so the create/edit form matches
+   the rest of the app rather than introducing a second visual language. */
+
+.appointment-modal-body .add-form,
+#appointmentForm {
+  background: none;
+  border: none;
+  box-shadow: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+#appointmentForm .field { display: flex; flex-direction: column; gap: 6px; }
+#appointmentForm .field label { font-size: 13px; color: var(--ink-soft); font-weight: 700; }
+#appointmentForm input[type=text],
+#appointmentForm input[type=date],
+#appointmentForm input[type=time],
+#appointmentForm select,
+#appointmentForm textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 11px;
+  font-size: 14px;
+  font-family: var(--font-ui);
+  background: var(--surface-muted);
+  color: var(--ink);
+  resize: vertical;
+}
+#appointmentForm input:focus, #appointmentForm select:focus, #appointmentForm textarea:focus {
+  outline: 2px solid var(--accent); outline-offset: 1px; background: var(--surface);
+}
+#appointmentForm .checkbox-field {
+  flex-direction: row;
+  align-items: center;
+}
+#appointmentForm .checkbox-field label {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 14px; font-weight: 600; color: var(--ink);
+}
+#appointmentForm .checkbox-field input { width: 17px; height: 17px; }
+.appt-time-row { display: flex; gap: 12px; }
+.appt-time-row .field { flex: 1; }
+.appt-time-row[hidden] { display: none; } /* author-level .appt-time-row above otherwise beats the UA [hidden] rule */
+#appointmentForm .primary-btn {
+  align-self: flex-start;
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 700;
+}
+#appointmentForm .primary-btn:hover { opacity: 0.92; }
+#appointmentForm .form-msg { font-size: 13px; font-weight: 600; }
+#appointmentForm .form-msg.error { color: var(--danger); }
+#appointmentForm .form-msg.ok { color: var(--accent); }
+
+.modal-edit-row { display: flex; gap: 10px; border-top: 1px solid var(--border); margin-top: 14px; padding-top: 14px; }
+.modal-edit-row .ghost-btn, .modal-edit-row .danger-btn {
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+}
+.modal-edit-row .ghost-btn { border: 1px solid var(--border); background: var(--surface); color: var(--ink); }
+.modal-edit-row .ghost-btn:hover { border-color: var(--border-strong); }
+.modal-edit-row .danger-btn { border: 1px solid rgba(220,38,38,0.35); background: var(--surface); color: var(--danger); }
+.modal-edit-row .danger-btn:hover { background: rgba(220,38,38,0.06); }

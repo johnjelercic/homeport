@@ -65,7 +65,7 @@
 
   async function loadCalendars() {
     const res = await fetch('/api/calendars');
-    const calendars = await res.json();
+    const calendars = (await res.json()).filter((cal) => cal.source_type !== 'msgraph');
     const list = document.getElementById('calList');
     const emptyNote = document.getElementById('emptyNote');
     list.innerHTML = '';
@@ -74,7 +74,14 @@
     calendars.forEach((cal) => renderCalendarCard(list, cal));
   }
 
-  function renderCalendarCard(list, cal) {
+  // `opts.removable` (default true) controls whether the standalone
+  // "Remove" button appears — connected-account calendars are removed by
+  // disconnecting the account instead (see renderOAuthAccountCard), so
+  // that's suppressed there to avoid two different ways to do the same
+  // thing with different consequences (removing just the calendar row
+  // here would silently orphan the account's stored connection).
+  function renderCalendarCard(list, cal, opts = {}) {
+    const removable = opts.removable !== false;
     const card = document.createElement('div');
     card.className = 'cal-card';
     const status = statusLabel(cal);
@@ -85,13 +92,13 @@
       <button type="button" class="cal-color-dot" style="background:${cal.color}" title="Change color"></button>
       <div class="cal-info">
         <div class="name">${escapeHtml(cal.name)}</div>
-        <div class="url">${escapeHtml(cal.url)}</div>
+        ${cal.url ? `<div class="url">${escapeHtml(cal.url)}</div>` : ''}
         <div class="status ${status.cls}">${escapeHtml(status.text)}</div>
       </div>
       <div class="cal-actions">
         <button class="toggle ${cal.visible ? 'on' : ''}" title="Show on display" aria-label="Toggle visible"></button>
         <button class="customize-btn" type="button">Customize</button>
-        <button class="danger" type="button">Remove</button>
+        ${removable ? '<button class="danger" type="button">Remove</button>' : ''}
       </div>
     `;
     card.appendChild(row);
@@ -128,11 +135,13 @@
     });
 
     // -- remove --
-    row.querySelector('.danger').addEventListener('click', async () => {
-      if (!confirm(`Remove "${cal.name}"? This deletes its events from the display.`)) return;
-      await fetch(`/api/calendars/${cal.id}`, { method: 'DELETE' });
-      loadCalendars();
-    });
+    if (removable) {
+      row.querySelector('.danger').addEventListener('click', async () => {
+        if (!confirm(`Remove "${cal.name}"? This deletes its events from the display.`)) return;
+        await fetch(`/api/calendars/${cal.id}`, { method: 'DELETE' });
+        loadCalendars();
+      });
+    }
 
     // -- customize expand/collapse --
     let builtPanel = false;
@@ -215,7 +224,119 @@
     return String(s).replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   }
 
+  // -- Connected (OAuth) accounts --
+
+  async function loadOAuthAccounts() {
+    const res = await fetch('/api/oauth/accounts');
+    const { configured, accounts } = await res.json();
+    document.getElementById('connectMicrosoftBtn').hidden = !configured;
+    document.getElementById('oauthNotConfiguredNote').hidden = configured;
+
+    const list = document.getElementById('oauthAccountList');
+    list.innerHTML = '';
+    document.getElementById('oauthEmptyNote').hidden = accounts.length > 0;
+    accounts.forEach((account) => renderOAuthAccountCard(list, account));
+  }
+
+  function renderOAuthAccountCard(list, account) {
+    const card = document.createElement('div');
+    card.className = 'cal-card';
+
+    const row = document.createElement('div');
+    row.className = 'cal-row';
+    const statusText = account.status === 'needs_reauth'
+      ? `Needs reconnecting${account.last_error ? ` — ${account.last_error}` : ''}`
+      : 'Connected';
+    row.innerHTML = `
+      <button type="button" class="cal-color-dot" style="background:#0078D4;" title="Microsoft account" disabled></button>
+      <div class="cal-info">
+        <div class="name">${escapeHtml(account.display_name || account.email || 'Microsoft account')}</div>
+        ${account.email ? `<div class="url">${escapeHtml(account.email)}</div>` : ''}
+        <div class="status ${account.status === 'needs_reauth' ? 'error' : 'ok'}">${escapeHtml(statusText)}</div>
+      </div>
+      <div class="cal-actions">
+        <button class="danger" type="button">Disconnect</button>
+      </div>
+    `;
+    card.appendChild(row);
+    list.appendChild(card);
+
+    row.querySelector('.danger').addEventListener('click', async () => {
+      if (!confirm(`Disconnect "${account.display_name || account.email}"? This removes its calendar(s) from Homeport.`)) return;
+      await fetch(`/api/oauth/accounts/${account.id}`, { method: 'DELETE' });
+      loadOAuthAccounts();
+      loadCalendars();
+    });
+
+    // Each connected calendar under this account gets the same
+    // color/visibility/keyword-rule controls as a subscribed ICS calendar
+    // — it's still just a row in the same `calendars` table — just
+    // without its own "Remove" button (see renderCalendarCard).
+    const calWrap = document.createElement('div');
+    calWrap.className = 'cal-customize';
+    calWrap.hidden = account.calendars.length === 0;
+    card.appendChild(calWrap);
+    account.calendars.forEach((cal) => renderCalendarCard(calWrap, cal, { removable: false }));
+  }
+
+  let connectPollTimer = null;
+
+  function stopConnectPoll() {
+    if (connectPollTimer) { clearInterval(connectPollTimer); connectPollTimer = null; }
+  }
+
+  function renderConnectContent(html) {
+    document.getElementById('oauthConnectContent').innerHTML = html;
+  }
+
+  async function startMicrosoftConnect() {
+    document.getElementById('oauthConnectModal').hidden = false;
+    renderConnectContent('<p>Starting…</p>');
+
+    const res = await fetch('/api/oauth/microsoft/connect', { method: 'POST' });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      renderConnectContent(`<p class="form-msg error">${escapeHtml(body.error || 'Could not start — please try again.')}</p>`);
+      return;
+    }
+
+    const poll = async () => {
+      const stRes = await fetch(`/api/oauth/microsoft/connect/${body.connectId}`);
+      const state = await stRes.json().catch(() => ({}));
+
+      if (state.status === 'pending') {
+        renderConnectContent(state.userCode ? `
+          <p>On your phone or any other device, go to:</p>
+          <p style="font-size:20px; margin:8px 0;"><a href="${escapeHtml(state.verificationUri)}" target="_blank" rel="noopener">${escapeHtml(state.verificationUri)}</a></p>
+          <p>and enter this code:</p>
+          <p style="font-size:32px; font-weight:700; letter-spacing:2px; margin:8px 0;">${escapeHtml(state.userCode)}</p>
+          <p style="font-size:13px; color:var(--ink-soft);">This page will update automatically once you finish signing in.</p>
+        ` : '<p>Requesting a sign-in code…</p>');
+      } else if (state.status === 'done') {
+        stopConnectPoll();
+        renderConnectContent('<p>Connected! Its default calendar has been added and is syncing now.</p>');
+        loadOAuthAccounts();
+        loadCalendars();
+      } else if (state.status === 'error') {
+        stopConnectPoll();
+        renderConnectContent(`<p class="form-msg error">${escapeHtml(state.error || 'Something went wrong — please try again.')}</p>`);
+      }
+    };
+
+    poll();
+    connectPollTimer = setInterval(poll, 3000);
+  }
+
   function wire() {
+    document.getElementById('connectMicrosoftBtn').addEventListener('click', startMicrosoftConnect);
+    document.getElementById('closeOauthConnectModal').addEventListener('click', () => {
+      stopConnectPoll();
+      document.getElementById('oauthConnectModal').hidden = true;
+    });
+    document.getElementById('oauthConnectModal').addEventListener('click', (e) => {
+      if (e.target.id === 'oauthConnectModal') { stopConnectPoll(); e.currentTarget.hidden = true; }
+    });
+
     document.querySelectorAll('.settings-tab').forEach((btn) => {
       btn.addEventListener('click', () => {
         if (btn.classList.contains('active')) return;
@@ -658,6 +779,7 @@
   loadTimelineHoursForm();
   loadDefaultViewForm();
   loadWeatherZipForm();
+  loadOAuthAccounts();
   loadCalendars();
   loadVersion();
 })();

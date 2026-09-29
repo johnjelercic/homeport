@@ -8,6 +8,7 @@
     "start": "node server/index.js"
   },
   "dependencies": {
+    "@azure/msal-node": "^7.0.0",
     "better-sqlite3": "^11.3.0",
     "express": "^4.22.3",
     "heic-decode": "^2.1.0",
