@@ -108,6 +108,10 @@
     panel.hidden = true;
     panel.innerHTML = `
       <div class="customize-section">
+        <div class="customize-label">Calendar name</div>
+        <input type="text" class="customize-name-input" data-role="calendar-name" />
+      </div>
+      <div class="customize-section">
         <div class="customize-label">Calendar color</div>
         <div class="picker-slot" data-role="calendar-color"></div>
       </div>
@@ -160,6 +164,29 @@
   }
 
   function buildCustomizePanel(panel, cal, row) {
+    // Calendar name — every calendar (Outlook-connected ones included, not
+    // just ICS feeds, which already got their name from the Add form) is
+    // just a row in the same table, so this is the one place both kinds
+    // get to rename it. Matters most for a connected Microsoft account,
+    // whose default calendar always starts out just called "Calendar" —
+    // needs to be distinguishable once event creation lets you pick which
+    // calendar to save to.
+    const nameInput = panel.querySelector('[data-role="calendar-name"]');
+    nameInput.value = cal.name;
+    const saveName = async () => {
+      const trimmed = nameInput.value.trim();
+      if (!trimmed) { nameInput.value = cal.name; return; }
+      if (trimmed === cal.name) return;
+      const saved = await updateCalendar(cal.id, { name: trimmed });
+      cal.name = saved.name || trimmed;
+      nameInput.value = cal.name;
+      row.querySelector('.name').textContent = cal.name;
+    };
+    nameInput.addEventListener('blur', saveName);
+    nameInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') { e.preventDefault(); nameInput.blur(); }
+    });
+
     // Calendar (base) color picker
     const colorSlot = panel.querySelector('[data-role="calendar-color"]');
     buildColorPicker(colorSlot, cal.color, async (hex) => {

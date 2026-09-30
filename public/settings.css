@@ -153,6 +153,19 @@ h2.section-title {
 }
 .rule-remove:hover { background: var(--surface-muted); color: var(--danger); }
 
+.customize-name-input {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: var(--font-ui);
+  background: var(--surface);
+  color: var(--ink);
+  max-width: 320px;
+}
+.customize-name-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
 .add-rule-row {
   display: flex;
   align-items: center;
