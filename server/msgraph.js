@@ -199,10 +199,16 @@ function startConnect() {
       state.status = 'done';
       state.accountId = accountId;
     } catch (e) {
+      // Logged here (not just stashed on the in-memory state object) so a
+      // failure is still diagnosable from `docker logs` afterward — the
+      // state object is only ever read by the one browser tab that was
+      // polling it, and is gone as soon as that connect attempt is swept.
+      console.error('[msgraph] connect failed while finishing sign-in:', e);
       state.status = 'error';
       state.error = String(e.message || e);
     }
   }).catch((e) => {
+    console.error('[msgraph] connect failed during device-code sign-in:', e);
     state.status = 'error';
     state.error = String(e.message || e);
   });
@@ -246,7 +252,18 @@ async function graphFetch(accessToken, pathAndQuery, options = {}) {
   if (res.status === 204) return null;
   const body = await res.json().catch(() => null);
   if (!res.ok) {
-    const message = (body && body.error && body.error.message) || `Graph request failed (${res.status})`;
+    // Graph normally returns a JSON body shaped { error: { code, message } }
+    // that explains exactly why (wrong/missing scope, tenant restriction,
+    // consent not granted, etc.) — surface that instead of just the HTTP
+    // status, since the status alone (e.g. 403) is nowhere near enough to
+    // tell a scope problem apart from a tenant/account-type problem apart
+    // from a not-yet-granted-consent problem.
+    let message;
+    if (body && body.error) {
+      message = `${body.error.code ? body.error.code + ': ' : ''}${body.error.message || 'Graph request failed'} (HTTP ${res.status})`;
+    } else {
+      message = `Graph request failed (HTTP ${res.status}, ${res.statusText || 'no error body returned'})`;
+    }
     throw new Error(message);
   }
   return body;
