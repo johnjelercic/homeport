@@ -12,6 +12,20 @@ on:
     branches: [main]
   workflow_dispatch: # lets you trigger a rebuild manually from the Actions tab
 
+# Without this, two pushes close together (e.g. a feature commit followed
+# quickly by a version-bump or fix commit) start two independent jobs with
+# no ordering guarantee between them. Both build and push to the SAME
+# :latest tag, and whichever one finishes last wins — even if it was
+# building an OLDER commit (this happened for real: a slow/retried arm64
+# build for an earlier commit finished after a newer commit's faster
+# build, and overwrote :latest with the older, stale content). This group
+# ties every run for the same branch together and cancels an in-progress
+# one the moment a newer push comes in, so only the actual latest commit
+# ever gets to finish and publish.
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
