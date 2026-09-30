@@ -3,12 +3,24 @@ const db = require('./db');
 const cryptoStore = require('./crypto');
 const { graphRecurrenceToRRuleString } = require('./graphRecurrence');
 
-// Registered per-installation (see Settings → Calendars → "Connect a
-// Microsoft account" for the one-time setup steps) since Homeport is a
-// self-hosted, publicly-shared app — there's no single client ID that
-// could be baked into source the way a hosted SaaS product would. A
-// missing value just means the feature is unconfigured, not an error.
-const CLIENT_ID = process.env.MSGRAPH_CLIENT_ID || '';
+// Registered per-installation (see Settings → Connected accounts → the
+// Application (client) ID field, for the one-time setup steps) since
+// Homeport is a self-hosted, publicly-shared app — there's no single
+// client ID that could be baked into source the way a hosted SaaS product
+// would; every installation registers its own free Entra app and gets its
+// own ID. A missing value just means the feature is unconfigured, not an
+// error.
+//
+// Deliberately stored in the `settings` table (same as every other
+// per-installation preference — theme, weather ZIP, etc.), not read
+// directly from an environment variable, so it's set once from the
+// Settings page itself rather than by editing docker-compose.yml — and so
+// it's never at risk of ending up checked into a shared/example compose
+// file, which would otherwise mean every household running that example
+// unwittingly shares one installation's Microsoft app registration.
+// MSGRAPH_CLIENT_ID is still honored as a fallback, purely for anyone who
+// prefers managing it as infra-as-code instead — the DB value always wins
+// when both are set.
 const AUTHORITY = 'https://login.microsoftonline.com/common';
 const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 
@@ -18,13 +30,32 @@ const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 // every ~time it's used).
 const SCOPES = ['Calendars.ReadWrite', 'offline_access'];
 
+const CLIENT_ID_SETTING_KEY = 'msgraph_client_id';
+
+function getStoredClientId() {
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get(CLIENT_ID_SETTING_KEY);
+  return row ? row.value : '';
+}
+
+function setClientId(value) {
+  const trimmed = String(value || '').trim();
+  db.prepare(
+    `INSERT INTO settings (key, value) VALUES (?, ?)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value`
+  ).run(CLIENT_ID_SETTING_KEY, trimmed);
+}
+
+function getClientId() {
+  return getStoredClientId() || process.env.MSGRAPH_CLIENT_ID || '';
+}
+
 function isConfigured() {
-  return !!CLIENT_ID;
+  return !!getClientId();
 }
 
 function newPca() {
   return new msal.PublicClientApplication({
-    auth: { clientId: CLIENT_ID, authority: AUTHORITY }
+    auth: { clientId: getClientId(), authority: AUTHORITY }
   });
 }
 
@@ -414,6 +445,8 @@ async function deleteEvent(calendar, eventId) {
 
 module.exports = {
   isConfigured,
+  getClientId,
+  setClientId,
   listAccounts,
   deleteAccount,
   startConnect,

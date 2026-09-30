@@ -238,6 +238,37 @@
     accounts.forEach((account) => renderOAuthAccountCard(list, account));
   }
 
+  // The Application (client) ID field is separate from loadOAuthAccounts
+  // above (which only reports whether one is configured) since this needs
+  // the actual value to pre-fill the input for editing.
+  async function loadMsgraphClientId() {
+    const res = await fetch('/api/oauth/microsoft/client-id');
+    const { clientId } = await res.json().catch(() => ({ clientId: '' }));
+    document.getElementById('msgraphClientId').value = clientId || '';
+  }
+
+  async function saveMsgraphClientId(e) {
+    e.preventDefault();
+    const msg = document.getElementById('msgraphClientIdMsg');
+    msg.textContent = '';
+    msg.className = 'form-msg';
+    const clientId = document.getElementById('msgraphClientId').value.trim();
+    const res = await fetch('/api/oauth/microsoft/client-id', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ clientId })
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      msg.textContent = body.error || 'Could not save.';
+      msg.classList.add('error');
+      return;
+    }
+    msg.textContent = 'Saved.';
+    msg.classList.add('ok');
+    loadOAuthAccounts();
+  }
+
   function renderOAuthAccountCard(list, account) {
     const card = document.createElement('div');
     card.className = 'cal-card';
@@ -328,6 +359,7 @@
   }
 
   function wire() {
+    document.getElementById('msgraphClientIdForm').addEventListener('submit', saveMsgraphClientId);
     document.getElementById('connectMicrosoftBtn').addEventListener('click', startMicrosoftConnect);
     document.getElementById('closeOauthConnectModal').addEventListener('click', () => {
       stopConnectPoll();
@@ -779,6 +811,7 @@
   loadTimelineHoursForm();
   loadDefaultViewForm();
   loadWeatherZipForm();
+  loadMsgraphClientId();
   loadOAuthAccounts();
   loadCalendars();
   loadVersion();

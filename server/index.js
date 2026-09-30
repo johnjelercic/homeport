@@ -149,6 +149,27 @@ app.get('/api/oauth/accounts', (req, res) => {
   res.json({ configured: msgraph.isConfigured(), accounts: accountsWithCalendars() });
 });
 
+// The Microsoft Entra "Application (client) ID" from each installation's
+// own one-time app registration (see README) — stored in the settings
+// table via Settings → Connected accounts, not an environment variable, so
+// it's never at risk of being checked into a shared docker-compose.yml.
+// Not a secret (it's a public-client identifier, same as the device-code
+// flow itself needing no client secret at all), so it's fine to read back
+// as plain text here.
+app.get('/api/oauth/microsoft/client-id', (req, res) => {
+  res.json({ clientId: msgraph.getClientId() });
+});
+
+app.put('/api/oauth/microsoft/client-id', (req, res) => {
+  const { clientId } = req.body || {};
+  const trimmed = String(clientId || '').trim();
+  if (trimmed && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(trimmed)) {
+    return res.status(400).json({ error: 'That doesn\'t look like an Application (client) ID — it should be a GUID like 11111111-2222-3333-4444-555555555555.' });
+  }
+  msgraph.setClientId(trimmed);
+  res.json({ configured: msgraph.isConfigured() });
+});
+
 app.post('/api/oauth/microsoft/connect', (req, res) => {
   try {
     const connectId = msgraph.startConnect();

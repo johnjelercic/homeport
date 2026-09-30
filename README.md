@@ -220,6 +220,46 @@ share link.
 
 Paste that link into Settings → "Add a calendar."
 
+## Connecting a Microsoft (Outlook) account
+
+Subscribing to a published Outlook ICS link (above) is read-only. To
+also create, edit, or delete appointments from Homeport itself, connect
+the account instead, from Settings → "Connected accounts."
+
+This needs a one-time, free Microsoft Entra app registration — about 5
+minutes, done once per Homeport installation, not once per account you
+connect:
+
+1. Sign in to the [Microsoft Entra admin center](https://entra.microsoft.com).
+   A personal Microsoft account with no Azure/Entra tenant yet will be
+   asked to create one first — [azure.microsoft.com/free](https://azure.microsoft.com/free)
+   provisions one (a card is required for identity verification, but
+   nothing described here ever costs anything).
+2. **App registrations → New registration.** Name it anything, set
+   **Supported account types** to "Accounts in any organizational
+   directory and personal Microsoft accounts," leave the redirect URI
+   blank, and register.
+3. **Authentication → Advanced settings → "Allow public client flows"**
+   → Yes → Save. This is what actually enables the device-code sign-in
+   below; without it, nothing else here works.
+4. **API permissions → Add a permission → Microsoft Graph → Delegated
+   permissions**, then add `Calendars.ReadWrite` and `offline_access`
+   (the latter is under a separate "OpenId permissions" group in the
+   picker, not next to Calendars). Neither needs admin consent.
+5. Copy the **Application (client) ID** from the app's Overview page.
+
+Paste that ID into Settings → "Connected accounts." It's saved in
+Homeport's own database, not an environment variable — deliberately, so
+it's specific to this installation and never ends up checked into a
+shared `docker-compose.yml`, which would otherwise mean every household
+running that same example file unwittingly shares one installation's
+Microsoft app registration. Then click "Connect a Microsoft account"
+and sign in — that part is an ordinary device-code sign-in
+(`microsoft.com/devicelogin`) with the account whose calendar you want,
+and doesn't touch the Entra admin center at all. Repeat it for
+additional family members' accounts as needed; each is tracked
+independently.
+
 ## Themes
 
 The display's color scheme is themeable — pick one from the dropdown in

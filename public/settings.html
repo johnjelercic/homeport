@@ -41,12 +41,29 @@
     </p>
     <div class="cal-list" id="oauthAccountList"></div>
     <div class="empty-note" id="oauthEmptyNote" hidden>No Microsoft accounts connected yet.</div>
-    <div class="empty-note" id="oauthNotConfiguredNote" hidden>
-      Connecting a Microsoft account isn't set up on this server yet — it needs an
-      <code>MSGRAPH_CLIENT_ID</code> environment variable from a free Microsoft Entra app
-      registration. Ask whoever manages this Homeport installation to add it.
-    </div>
-    <button type="button" class="primary-btn" id="connectMicrosoftBtn">Connect a Microsoft account</button>
+
+    <!-- This installation's own Entra "Application (client) ID" — see the
+         README for the one-time, free app-registration steps. Stored in
+         Homeport's database (Settings → save, below), not an environment
+         variable: that keeps it specific to this installation, with no
+         risk of a shared docker-compose.yml accidentally checking one
+         household's app registration into source for every other
+         installation to reuse. -->
+    <form class="add-form" id="msgraphClientIdForm" style="margin-bottom:16px;">
+      <div class="field">
+        <label for="msgraphClientId">Microsoft Entra Application (client) ID</label>
+        <input type="text" id="msgraphClientId" placeholder="e.g. 11111111-2222-3333-4444-555555555555" autocomplete="off" spellcheck="false" />
+      </div>
+      <button type="submit" class="ghost-btn">Save</button>
+      <div class="form-msg" id="msgraphClientIdMsg"></div>
+    </form>
+
+    <button type="button" class="primary-btn" id="connectMicrosoftBtn" hidden>Connect a Microsoft account</button>
+    <p class="empty-note" id="oauthNotConfiguredNote" style="margin-top:10px;">
+      Enter this installation's Application (client) ID above to enable connecting an account —
+      see the README's "Connecting a Microsoft (Outlook) account" section for the ~5-minute,
+      one-time setup in the Microsoft Entra admin center.
+    </p>
 
     <div class="modal-backdrop" id="oauthConnectModal" hidden>
       <div class="modal-card">
