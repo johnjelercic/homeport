@@ -33,6 +33,16 @@
       </div>
     </div>
 
+    <div style="display:flex; justify-content:space-between; align-items:center;">
+      <h2 class="section-title" style="margin:0;">Calendars</h2>
+      <button class="sync-all-btn" id="syncAllBtn">Sync now</button>
+    </div>
+    <p style="font-size:12.5px; color:var(--ink-soft); margin:6px 0 20px; line-height:1.5;">
+      Syncs every calendar below at once — both connected Microsoft accounts
+      and subscribed ICS feeds — rather than waiting for the next automatic
+      check.
+    </p>
+
     <h2 class="section-title">Connected accounts</h2>
     <p style="font-size:14px; color:var(--ink-soft); line-height:1.6; margin:0 0 14px;">
       Connect a Microsoft (Outlook) account to create and edit appointments from Homeport itself,
@@ -75,10 +85,7 @@
       </div>
     </div>
 
-    <div style="display:flex; justify-content:space-between; align-items:center;">
-      <h2 class="section-title" style="margin:0;">Subscribed calendars</h2>
-      <button class="sync-all-btn" id="syncAllBtn">Sync now</button>
-    </div>
+    <h2 class="section-title">Subscribed calendars</h2>
     <div class="cal-list" id="calList"></div>
     <div class="empty-note" id="emptyNote" hidden>No calendars yet — add one below using its public ICS or webcal link.</div>
 
