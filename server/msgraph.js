@@ -246,12 +246,23 @@ async function graphFetch(accessToken, pathAndQuery, options = {}) {
     ...options,
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      // Forces Graph to return every date/time in UTC directly, rather
-      // than whichever timezone the event was originally created in —
-      // this is what lets the rest of Homeport keep treating start_utc/
-      // end_utc as always-UTC, exactly like the ICS sync path already
-      // does, with no per-event timezone math of its own.
-      Prefer: 'outlook.timezone="UTC"',
+      // Two preferences, comma-separated in one Prefer header (standard
+      // HTTP Prefer syntax — RFC 7240):
+      //   - outlook.timezone="UTC" forces Graph to return every date/time
+      //     in UTC directly, rather than whichever timezone the event was
+      //     originally created in — lets the rest of Homeport keep
+      //     treating start_utc/end_utc as always-UTC, exactly like the
+      //     ICS sync path already does, with no per-event timezone math.
+      //   - outlook.body-content-type="text" asks for event/message
+      //     bodies as plain text instead of Outlook's default HTML.
+      //     Without it, an event synced from a real Outlook calendar
+      //     (as opposed to one created through Homeport, which already
+      //     sends contentType: 'text' — see the create-event call below)
+      //     comes back with its full HTML document as the description,
+      //     Exchange's boilerplate <html><head><style>... included, shown
+      //     completely raw since Homeport's event-detail view treats the
+      //     description as plain text, not something to render as HTML.
+      Prefer: 'outlook.body-content-type="text", outlook.timezone="UTC"',
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...options.headers
     }

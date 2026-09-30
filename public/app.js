@@ -615,6 +615,44 @@
   // The occurrence being edited, or null when the form is in "create" mode.
   let editingOccurrence = null;
 
+  // Duration (end minus start), preserved across a start-time change so
+  // nudging the start doesn't silently reset a longer appointment back
+  // down to an hour — only actually editing the end time itself changes
+  // what gets preserved from then on. Lets picking a start time of 3pm
+  // for a normal 1hr appointment land the end time on 4pm immediately,
+  // instead of leaving it wherever the previous start/end happened to be
+  // (often long before the new start, forcing a scroll all the way back
+  // up through every hour in between).
+  let apptDurationMinutes = 60;
+
+  function timeToMinutes(hhmm) {
+    const [h, m] = hhmm.split(':').map(Number);
+    return h * 60 + m;
+  }
+  function minutesToTime(mins) {
+    const clamped = Math.max(0, Math.min(23 * 60 + 59, mins));
+    return `${pad2(Math.floor(clamped / 60))}:${pad2(clamped % 60)}`;
+  }
+
+  function handleApptStartTimeChange() {
+    const startInput = document.getElementById('apptStartTime');
+    const endInput = document.getElementById('apptEndTime');
+    if (!startInput.value) return;
+    endInput.value = minutesToTime(timeToMinutes(startInput.value) + apptDurationMinutes);
+  }
+
+  // Only actually changing the end time updates the duration that gets
+  // preserved — this runs on the end input's own change event, never as
+  // a side effect of handleApptStartTimeChange above setting it
+  // programmatically (setting .value in JS doesn't fire 'change').
+  function handleApptEndTimeChange() {
+    const startInput = document.getElementById('apptStartTime');
+    const endInput = document.getElementById('apptEndTime');
+    if (!startInput.value || !endInput.value) return;
+    const diff = timeToMinutes(endInput.value) - timeToMinutes(startInput.value);
+    if (diff > 0) apptDurationMinutes = diff;
+  }
+
   function populateApptCalendarSelect(selectedId) {
     const select = document.getElementById('apptCalendar');
     select.innerHTML = state.writableCalendars
@@ -666,6 +704,10 @@
       dateInput.value = occ.all_day ? utcYmd(start) : localYmd(start);
       startInput.value = occ.all_day ? '' : localTimeValue(start);
       endInput.value = occ.all_day ? '' : localTimeValue(end);
+      if (!occ.all_day) {
+        const diffMinutes = Math.round((end - start) / 60000);
+        if (diffMinutes > 0) apptDurationMinutes = diffMinutes;
+      }
       document.getElementById('apptTitle').value = occ.summary && occ.summary !== '(No title)' ? occ.summary : '';
       document.getElementById('apptLocation').value = occ.location || '';
       document.getElementById('apptDetail').value = occ.description || '';
@@ -674,6 +716,7 @@
       dateInput.value = localYmd(state.anchor);
       startInput.value = '09:00';
       endInput.value = '10:00';
+      apptDurationMinutes = 60;
       document.getElementById('apptTitle').value = '';
       document.getElementById('apptLocation').value = '';
       document.getElementById('apptDetail').value = '';
@@ -926,6 +969,8 @@
     document.getElementById('appointmentModal').addEventListener('click', (e) => { if (e.target.id === 'appointmentModal') closeAppointmentModal(); });
     document.getElementById('appointmentForm').addEventListener('submit', submitAppointmentForm);
     document.getElementById('apptAllDay').addEventListener('change', applyAllDayFieldVisibility);
+    document.getElementById('apptStartTime').addEventListener('change', handleApptStartTimeChange);
+    document.getElementById('apptEndTime').addEventListener('change', handleApptEndTimeChange);
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
