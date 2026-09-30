@@ -93,18 +93,30 @@ if (!calendarColumns.includes('color_rules')) {
 // before oauth_accounts existed. Guarded so it's a no-op on fresh installs
 // (whose CREATE TABLE above already matches this shape) and safe to run
 // every boot. SQLite can't ALTER a column's NOT NULL constraint in place,
-// so this recreates the table — foreign_keys is turned off for the
-// duration since `events` references `calendars` by name and would
-// otherwise trip its FK check the moment the RENAME makes that name
-// disappear, even mid-transaction.
+// so this recreates the table.
+//
+// IMPORTANT: the replacement table is built under a temporary name and the
+// OLD `calendars` table is dropped and then replaced by RENAMING THE NEW
+// TABLE INTO PLACE — never the other way around. Renaming `calendars`
+// itself out of the way first (e.g. `RENAME TO calendars_old`) looks
+// equivalent but isn't: SQLite's ALTER TABLE RENAME also rewrites the
+// FOREIGN KEY clause of any *other* table that references the renamed
+// table (here, `events`), permanently repointing it at `calendars_old` —
+// which then vanishes forever once that table is dropped a few lines
+// later, breaking every future INSERT into `events` with "no such table:
+// calendars_old". (Shipped that exact bug once; see the repair migration
+// right below this one, which un-breaks any database that already got
+// migrated by that earlier version of this code.) Building the
+// replacement under its own name and renaming *it* into `calendars` at
+// the end never touches `events`'s foreign key clause at all, since
+// nothing references `calendars_new` while it's being set up.
 const calendarsInfo = db.prepare(`PRAGMA table_info(calendars)`).all();
 const urlCol = calendarsInfo.find((c) => c.name === 'url');
 if (urlCol && urlCol.notnull) {
   db.pragma('foreign_keys = OFF');
   db.transaction(() => {
-    db.exec(`ALTER TABLE calendars RENAME TO calendars_old;`);
     db.exec(`
-      CREATE TABLE calendars (
+      CREATE TABLE calendars_new (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         url TEXT,
@@ -122,10 +134,56 @@ if (urlCol && urlCol.notnull) {
       );
     `);
     db.exec(`
-      INSERT INTO calendars (id, name, url, color, visible, color_rules, source_type, last_synced_at, last_sync_status, last_sync_error, created_at)
-      SELECT id, name, url, color, visible, color_rules, 'ics', last_synced_at, last_sync_status, last_sync_error, created_at FROM calendars_old;
+      INSERT INTO calendars_new (id, name, url, color, visible, color_rules, source_type, last_synced_at, last_sync_status, last_sync_error, created_at)
+      SELECT id, name, url, color, visible, color_rules, 'ics', last_synced_at, last_sync_status, last_sync_error, created_at FROM calendars;
     `);
-    db.exec(`DROP TABLE calendars_old;`);
+    db.exec(`DROP TABLE calendars;`);
+    db.exec(`ALTER TABLE calendars_new RENAME TO calendars;`);
+  })();
+  db.pragma('foreign_keys = ON');
+}
+
+// Repair: an earlier version of the migration above renamed `calendars` to
+// `calendars_old` before recreating it, which (per the comment above)
+// silently left `events`'s foreign key permanently pointing at
+// `calendars_old` even after that table was dropped — breaking every
+// INSERT into `events` with "no such table: calendars_old" on any database
+// that was migrated by that version of the code. Detected by checking
+// `events`'s actual stored schema for the dangling reference (rather than,
+// say, a version flag) so this is a correct no-op both for anyone who
+// never hit the bug and for a database already repaired by this block on
+// a previous boot.
+const eventsTableSql = db.prepare(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'events'`).get();
+if (eventsTableSql && /calendars_old/.test(eventsTableSql.sql)) {
+  db.pragma('foreign_keys = OFF');
+  db.transaction(() => {
+    db.exec(`
+      CREATE TABLE events_new (
+        id TEXT NOT NULL,
+        calendar_id INTEGER NOT NULL,
+        summary TEXT,
+        description TEXT,
+        location TEXT,
+        start_utc TEXT NOT NULL,
+        end_utc TEXT,
+        all_day INTEGER NOT NULL DEFAULT 0,
+        rrule TEXT,
+        exdates TEXT,
+        recurrence_overrides TEXT,
+        tzid TEXT,
+        updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+        PRIMARY KEY (id, calendar_id),
+        FOREIGN KEY (calendar_id) REFERENCES calendars(id) ON DELETE CASCADE
+      );
+    `);
+    db.exec(`
+      INSERT INTO events_new (id, calendar_id, summary, description, location, start_utc, end_utc, all_day, rrule, exdates, recurrence_overrides, tzid, updated_at)
+      SELECT id, calendar_id, summary, description, location, start_utc, end_utc, all_day, rrule, exdates, recurrence_overrides, tzid, updated_at FROM events;
+    `);
+    db.exec(`DROP TABLE events;`);
+    db.exec(`ALTER TABLE events_new RENAME TO events;`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_events_calendar ON events(calendar_id);`);
+    db.exec(`CREATE INDEX IF NOT EXISTS idx_events_start ON events(start_utc);`);
   })();
   db.pragma('foreign_keys = ON');
 }
