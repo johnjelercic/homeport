@@ -616,14 +616,14 @@
   let editingOccurrence = null;
 
   // Duration (end minus start), preserved across a start-time change so
-  // nudging the start doesn't silently reset a longer appointment back
-  // down to an hour — only actually editing the end time itself changes
-  // what gets preserved from then on. Lets picking a start time of 3pm
-  // for a normal 1hr appointment land the end time on 4pm immediately,
-  // instead of leaving it wherever the previous start/end happened to be
-  // (often long before the new start, forcing a scroll all the way back
-  // up through every hour in between).
-  let apptDurationMinutes = 60;
+  // nudging the start doesn't silently reset a longer appointment's
+  // length — only actually editing the end time (directly, or via the
+  // +15 min button) changes what gets preserved from then on. Lets
+  // picking a start time of 3pm land the end time straight on the
+  // default 30 minutes later, instead of leaving it wherever the
+  // previous start/end happened to be (often long before the new start,
+  // forcing a scroll all the way back up through every hour in between).
+  let apptDurationMinutes = 30;
 
   function timeToMinutes(hhmm) {
     const [h, m] = hhmm.split(':').map(Number);
@@ -651,6 +651,24 @@
     if (!startInput.value || !endInput.value) return;
     const diff = timeToMinutes(endInput.value) - timeToMinutes(startInput.value);
     if (diff > 0) apptDurationMinutes = diff;
+  }
+
+  // "+15 min" button next to the end time field — adds to whatever
+  // duration is actually showing right now (read fresh from the two time
+  // inputs, not from apptDurationMinutes alone) so it still does the
+  // right thing even right after typing a new end time by hand, before
+  // that field's own change/blur has fired. Clicking it doesn't reset to
+  // a fixed length — it always means "the current duration, plus this
+  // much more" — shortening an appointment is still just a matter of
+  // editing the end time directly, exactly as before.
+  function bumpApptDuration(deltaMinutes) {
+    const startInput = document.getElementById('apptStartTime');
+    const endInput = document.getElementById('apptEndTime');
+    if (!startInput.value || !endInput.value) return;
+    const currentDuration = timeToMinutes(endInput.value) - timeToMinutes(startInput.value);
+    const newDuration = Math.max(deltaMinutes, currentDuration + deltaMinutes);
+    apptDurationMinutes = newDuration;
+    endInput.value = minutesToTime(timeToMinutes(startInput.value) + newDuration);
   }
 
   function populateApptCalendarSelect(selectedId) {
@@ -715,8 +733,8 @@
       allDayInput.checked = false;
       dateInput.value = localYmd(state.anchor);
       startInput.value = '09:00';
-      endInput.value = '10:00';
-      apptDurationMinutes = 60;
+      endInput.value = '09:30';
+      apptDurationMinutes = 30;
       document.getElementById('apptTitle').value = '';
       document.getElementById('apptLocation').value = '';
       document.getElementById('apptDetail').value = '';
@@ -971,6 +989,7 @@
     document.getElementById('apptAllDay').addEventListener('change', applyAllDayFieldVisibility);
     document.getElementById('apptStartTime').addEventListener('change', handleApptStartTimeChange);
     document.getElementById('apptEndTime').addEventListener('change', handleApptEndTimeChange);
+    document.getElementById('apptAdd15Btn').addEventListener('click', () => bumpApptDuration(15));
 
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {

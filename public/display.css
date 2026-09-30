@@ -1036,6 +1036,22 @@
 .appt-time-row { display: flex; gap: 12px; }
 .appt-time-row .field { flex: 1; }
 .appt-time-row[hidden] { display: none; } /* author-level .appt-time-row above otherwise beats the UA [hidden] rule */
+.appt-end-time-row { display: flex; gap: 8px; align-items: center; }
+.appt-end-time-row input[type=time] { flex: 1; min-width: 0; }
+.appt-add15-btn {
+  flex-shrink: 0;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: var(--font-ui);
+  white-space: nowrap;
+}
+.appt-add15-btn:hover { border-color: var(--border-strong); }
+.appt-add15-btn:active { background: var(--surface-muted); }
 #appointmentForm .primary-btn {
   align-self: flex-start;
   background: var(--accent);
