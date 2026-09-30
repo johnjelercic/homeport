@@ -28,7 +28,15 @@ const GRAPH_BASE = 'https://graph.microsoft.com/v1.0';
 // offline_access for a refresh token (without it MSAL only ever gets a
 // short-lived access token and the connection would need re-authorizing
 // every ~time it's used).
-const SCOPES = ['Calendars.ReadWrite', 'offline_access'];
+// User.Read is requested explicitly rather than relied on as an implicit
+// default grant — that assumption held for work/school (Azure AD) accounts
+// during development, but personal Microsoft accounts (MSA) going through
+// the public-client device-code flow don't reliably get it for free, and
+// omitting it produced a 403 'UnknownError' on the very first Graph call
+// (fetching the signed-in user's own profile) for a real Outlook.com
+// account. Costs nothing extra on the consent screen — it's the most
+// basic profile-read permission there is.
+const SCOPES = ['User.Read', 'Calendars.ReadWrite', 'offline_access'];
 
 const CLIENT_ID_SETTING_KEY = 'msgraph_client_id';
 
@@ -164,9 +172,8 @@ function startConnect() {
     }
   }).then(async (result) => {
     try {
-      // /me needs User.Read, which MSAL/Graph grant implicitly alongside
-      // any other delegated scope on the same consent — no separate scope
-      // request needed just to read the signed-in user's own profile.
+      // User.Read is in SCOPES above specifically so this call works for
+      // personal Microsoft accounts, not just work/school ones.
       const me = await graphFetch(result.accessToken, '/me?$select=displayName,mail,userPrincipalName');
       const accountId = insertAccount.run({
         provider: 'microsoft',
