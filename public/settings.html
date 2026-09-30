@@ -43,8 +43,11 @@
       check.
     </p>
 
-    <h2 class="section-title">Connected accounts</h2>
-    <p style="font-size:14px; color:var(--ink-soft); line-height:1.6; margin:0 0 14px;">
+    <div style="display:flex; justify-content:space-between; align-items:baseline;">
+      <h2 class="section-title" style="margin:0;">Connected accounts</h2>
+      <a href="/connect-microsoft-help.html" target="_blank" rel="noopener" style="font-size:13px; font-weight:700; color:var(--accent); text-decoration:none; white-space:nowrap;">How-to &amp; FAQ &#8599;</a>
+    </div>
+    <p style="font-size:14px; color:var(--ink-soft); line-height:1.6; margin:6px 0 14px;">
       Connect a Microsoft (Outlook) account to create and edit appointments from Homeport itself,
       in addition to just viewing them. Each connected account adds its default calendar; more
       accounts — for example, one per family member — can be connected the same way.
@@ -52,13 +55,13 @@
     <div class="cal-list" id="oauthAccountList"></div>
     <div class="empty-note" id="oauthEmptyNote" hidden>No Microsoft accounts connected yet.</div>
 
-    <!-- This installation's own Entra "Application (client) ID" — see the
-         README for the one-time, free app-registration steps. Stored in
-         Homeport's database (Settings → save, below), not an environment
-         variable: that keeps it specific to this installation, with no
-         risk of a shared docker-compose.yml accidentally checking one
-         household's app registration into source for every other
-         installation to reuse. -->
+    <!-- This installation's own Entra "Application (client) ID" — see
+         /connect-microsoft-help.html (linked above) for the one-time, free
+         app-registration steps. Stored in Homeport's database (Settings →
+         save, below), not an environment variable: that keeps it specific
+         to this installation, with no risk of a shared docker-compose.yml
+         accidentally checking one household's app registration into
+         source for every other installation to reuse. -->
     <form class="add-form" id="msgraphClientIdForm" style="margin-bottom:16px;">
       <div class="field">
         <label for="msgraphClientId">Microsoft Entra Application (client) ID</label>
@@ -71,8 +74,8 @@
     <button type="button" class="primary-btn" id="connectMicrosoftBtn" hidden>Connect a Microsoft account</button>
     <p class="empty-note" id="oauthNotConfiguredNote" style="margin-top:10px;">
       Enter this installation's Application (client) ID above to enable connecting an account —
-      see the README's "Connecting a Microsoft (Outlook) account" section for the ~5-minute,
-      one-time setup in the Microsoft Entra admin center.
+      see the <a href="/connect-microsoft-help.html" target="_blank" rel="noopener">How-to &amp; FAQ</a>
+      above for the ~5-minute, one-time setup in the Microsoft Entra admin center.
     </p>
 
     <div class="modal-backdrop" id="oauthConnectModal" hidden>

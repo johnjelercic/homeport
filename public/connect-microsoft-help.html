@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Connecting a Microsoft Account — Homeport Help</title>
+<link rel="stylesheet" href="style.css" />
+<link rel="stylesheet" href="settings.css" />
+<style>
+  .help-wrap { max-width: 720px; margin: 0 auto; padding: 40px 24px 80px; }
+  .help-wrap h2.section-title { margin-top: 36px; }
+  .help-wrap h2.section-title:first-of-type { margin-top: 28px; }
+  .help-wrap ol, .help-wrap ul { padding-left: 22px; line-height: 1.7; font-size: 14.5px; color: var(--ink); }
+  .help-wrap li { margin-bottom: 10px; }
+  .help-wrap p { line-height: 1.7; font-size: 14.5px; color: var(--ink); }
+  .help-wrap code {
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 13px;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  .help-note {
+    background: var(--surface-muted);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--ink);
+    margin: 14px 0;
+  }
+  .help-note strong { color: var(--ink); }
+  details.faq-item {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px 16px;
+    margin-bottom: 10px;
+    background: var(--surface);
+  }
+  details.faq-item summary {
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14.5px;
+    color: var(--ink);
+    padding: 12px 0;
+    list-style: none;
+  }
+  details.faq-item summary::-webkit-details-marker { display: none; }
+  details.faq-item summary::before { content: "+ "; color: var(--accent); }
+  details.faq-item[open] summary::before { content: "− "; }
+  details.faq-item p, details.faq-item ul, details.faq-item ol { margin-top: 0; padding-bottom: 14px; }
+</style>
+</head>
+<body>
+<div class="help-wrap">
+  <div class="settings-header">
+    <h1>Connecting a Microsoft Account</h1>
+    <a class="back-link" href="/settings.html">← Back to Settings</a>
+  </div>
+
+  <p>
+    Subscribing to a calendar's published ICS/webcal link (the "Add a calendar" form on the
+    Settings page) is <strong>read-only</strong> — Homeport can show those events, but can't
+    create, edit, or delete them. Connecting a Microsoft (Outlook) account instead gives Homeport
+    full read/write access to that calendar, so appointments can be added and edited from
+    Homeport itself, not just viewed.
+  </p>
+
+  <div class="help-note">
+    This works for a <strong>free/personal Outlook.com account</strong> just as well as a
+    work or school Microsoft 365 account — the steps below are written for a personal account,
+    since that's the more roundabout of the two.
+  </div>
+
+  <h2 class="section-title">One-time setup (about 5 minutes)</h2>
+  <p>
+    This is done <strong>once per Homeport installation</strong>, not once per person connecting
+    an account — after this, every family member can connect their own account from the Settings
+    page in seconds, with no further setup.
+  </p>
+  <ol>
+    <li>
+      Sign in at <a href="https://entra.microsoft.com" target="_blank" rel="noopener">entra.microsoft.com</a>
+      with the Microsoft account you want to manage this from (it doesn't have to be the same
+      account you'll connect to Homeport). If this is the first time that account has ever used
+      Entra, it may need to provision a free tenant first — see the FAQ below if you get stuck
+      here, it's the step most likely to trip you up.
+    </li>
+    <li>
+      Go to <strong>App registrations → New registration</strong>. Give it any name (e.g.
+      "Homeport"), set <strong>Supported account types</strong> to
+      <em>"Accounts in any organizational directory and personal Microsoft accounts"</em>, leave
+      the redirect URI blank, and click Register.
+    </li>
+    <li>
+      Go to <strong>Authentication → Advanced settings</strong> and set
+      <strong>"Allow public client flows"</strong> to <strong>Yes</strong>, then Save. This is
+      what actually lets Homeport's sign-in work — without it, nothing past this point will
+      function.
+    </li>
+    <li>
+      Go to <strong>API permissions → Add a permission → Microsoft Graph → Delegated
+      permissions</strong>, and add <code>Calendars.ReadWrite</code>, <code>offline_access</code>,
+      and <code>User.Read</code> (the last one is usually already there by default — just confirm
+      it's present). None of these need admin consent for this kind of app.
+    </li>
+    <li>
+      Back on the app's <strong>Overview</strong> page, copy the
+      <strong>Application (client) ID</strong> — it looks like a long string of letters, numbers
+      and dashes.
+    </li>
+    <li>
+      Paste it into Settings → Calendars → Connected accounts, and click Save.
+    </li>
+  </ol>
+
+  <div class="help-note">
+    The Application (client) ID isn't a secret — it's fine that it's visible in Settings. It gets
+    saved in Homeport's own database (not baked into <code>docker-compose.yml</code>), so it's
+    specific to this one installation and never accidentally ends up shared if someone else
+    copies this setup for their own household.
+  </div>
+
+  <h2 class="section-title">Connecting an account</h2>
+  <p>
+    Once the Application (client) ID above is saved, click <strong>"Connect a Microsoft
+    account"</strong>. Homeport will show a short code and a link to
+    <code>microsoft.com/devicelogin</code> — open that link on any device (your phone is fine),
+    enter the code, and sign in with the account whose calendar you want connected. Homeport polls
+    in the background and finishes automatically once you approve it; no redirect back to Homeport
+    is needed. Repeat this for additional family members' accounts as needed — each is tracked
+    independently, and each adds its own default calendar.
+  </p>
+
+  <h2 class="section-title">Frequently asked questions</h2>
+
+  <details class="faq-item">
+    <summary>I can't sign in to entra.microsoft.com — it says I don't have access, or asks me to create a directory.</summary>
+    <p>
+      A plain personal Microsoft account (free Outlook.com, Hotmail, etc.) with no Azure/Entra
+      tenant yet often can't register an app until it's associated with one. The free, fastest
+      way to fix this is <a href="https://azure.microsoft.com/free" target="_blank" rel="noopener">signing
+      up for a free Azure account</a> — it asks for a card for identity verification (a temporary
+      ~$1 hold, not a real charge) and provisions a tenant for you automatically. Once that's
+      done, entra.microsoft.com should work normally with the same sign-in.
+    </p>
+  </details>
+
+  <details class="faq-item">
+    <summary>Registering the app says "the ability to create applications outside of a directory has been deprecated."</summary>
+    <p>
+      Same root cause as above — the account isn't yet associated with an actual Entra tenant.
+      Provisioning one (see the previous answer) resolves this too; there's nothing else to
+      configure differently.
+    </p>
+  </details>
+
+  <details class="faq-item">
+    <summary>When I try to sign in, I get "Selected user account does not exist in tenant... needs to be added as an external user."</summary>
+    <p>
+      This means the app registration's <strong>Supported account types</strong> setting doesn't
+      currently allow personal Microsoft accounts. Go to the app's <strong>Authentication</strong>
+      page in Entra and confirm it's set to "Accounts in any organizational directory and personal
+      Microsoft accounts" — this is editable after the fact, not just at creation time.
+    </p>
+  </details>
+
+  <details class="faq-item">
+    <summary>Do I need to put the Application (client) ID in docker-compose.yml or an environment variable?</summary>
+    <p>
+      No — paste it into Settings → Connected accounts instead. It's stored in Homeport's
+      database, which keeps it specific to this one installation rather than something that could
+      be accidentally checked into a shared config file.
+    </p>
+  </details>
+
+  <details class="faq-item">
+    <summary>A connected calendar just shows up named "Calendar" — can I rename it?</summary>
+    <p>
+      Yes — open that calendar's <strong>Customize</strong> panel on the Settings page (same place
+      as the color picker) and there's a name field at the top. Useful once more than one calendar
+      is connected, so you can tell them apart when choosing which one to save a new appointment
+      to.
+    </p>
+  </details>
+
+  <details class="faq-item">
+    <summary>Can I connect more than one account — say, one per family member?</summary>
+    <p>
+      Yes. Each account is connected independently through the same "Connect a Microsoft account"
+      button, and each adds its own calendar to Homeport. There's no limit built in.
+    </p>
+  </details>
+
+  <details class="faq-item">
+    <summary>A connected account shows "Needs reconnecting" — what happened?</summary>
+    <p>
+      Microsoft's sign-in tokens periodically expire and need to be renewed, which normally
+      happens automatically in the background. If that ever fails, the account's status changes
+      to "Needs reconnecting" — just click Connect again for that same account and sign in once
+      more; nothing else is lost.
+    </p>
+  </details>
+</div>
+</body>
+</html>
