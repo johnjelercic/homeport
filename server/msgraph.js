@@ -339,6 +339,54 @@ function toUtcIso(dt) {
 // master's recurrence_overrides, matched to the existing ICS-derived
 // override shape (keyed by the *original* occurrence's local calendar
 // date) so expand.js needs no changes to understand either source.
+// The events/delta endpoint Homeport actually syncs from doesn't support
+// the outlook.body-content-type Prefer header at all (confirmed against
+// Microsoft's own docs for that endpoint — it only lists timezone and
+// odata.maxpagesize as supported preferences), unlike the plain
+// /me/events endpoint, which does. Graph doesn't error on an unsupported
+// preference, it just silently ignores it — hence the header still being
+// sent (harmless, and correct for any endpoint that does support it) but
+// having no effect here. So the HTML has to actually be dealt with after
+// the fact instead, rather than avoided by asking Graph for text upfront.
+function htmlToPlainText(html) {
+  if (!html) return '';
+  let s = String(html);
+  // Drop entire head/style/script blocks — their content isn't meant to
+  // be shown at all, unlike an ordinary tag where only the tag itself
+  // (not the text inside it) should disappear.
+  s = s.replace(/<head[\s\S]*?<\/head>/gi, '');
+  s = s.replace(/<style[\s\S]*?<\/style>/gi, '');
+  s = s.replace(/<script[\s\S]*?<\/script>/gi, '');
+  // Block-level / line-break tags become actual newlines before the tags
+  // themselves are stripped, so paragraphs don't all run together.
+  s = s.replace(/<br\s*\/?>/gi, '\n');
+  s = s.replace(/<\/(p|div|tr|li|h[1-6])>/gi, '\n');
+  // Strip every remaining tag.
+  s = s.replace(/<[^>]+>/g, '');
+  // Decode the handful of entities Exchange/Outlook HTML actually uses.
+  s = s
+    .replace(/&nbsp;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/gi, "'")
+    .replace(/&#(\d+);/g, (_, n) => String.fromCharCode(Number(n)));
+  // Collapse the blank-line/whitespace debris left behind by all of the above.
+  s = s.replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  return s;
+}
+
+// Only actually run the conversion above when Graph says the body really
+// is HTML — a genuinely plain-text description could contain a stray "<"
+// or "&" (e.g. "Fee: <$20"), and blindly running it through a tag-
+// stripper risks mangling perfectly good plain text that never needed it.
+function extractDescription(item) {
+  if (!item.body || !item.body.content) return null;
+  if (item.body.contentType === 'html') return htmlToPlainText(item.body.content) || null;
+  return item.body.content;
+}
+
 function applyGraphEvent(calendarId, item) {
   if (item['@removed']) {
     deleteEventRow.run(calendarId, item.id);
@@ -365,7 +413,7 @@ function applyGraphEvent(calendarId, item) {
     const overrides = master.recurrence_overrides ? JSON.parse(master.recurrence_overrides) : {};
     overrides[key] = {
       summary: item.subject || master.summary,
-      description: (item.body && item.body.content) || null,
+      description: extractDescription(item),
       location: (item.location && item.location.displayName) || null,
       start_utc: toUtcIso(item.start),
       end_utc: toUtcIso(item.end),
@@ -381,7 +429,7 @@ function applyGraphEvent(calendarId, item) {
     id: item.id,
     calendar_id: calendarId,
     summary: item.subject || '(No title)',
-    description: (item.body && item.body.content) || null,
+    description: extractDescription(item),
     location: (item.location && item.location.displayName) || null,
     start_utc: toUtcIso(item.start),
     end_utc: toUtcIso(item.end),
