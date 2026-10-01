@@ -1,10 +1,12 @@
-# Homeport on a Raspberry Pi
+# Homeport on a Raspberry Pi (appliance)
+
+For a plain Docker install on any Linux machine or NAS, see [`../docker/`](../docker/).
 
 Scripts that turn a fresh Raspberry Pi OS (64-bit) install into a Homeport appliance.
 
 | Script | Run when | What it does |
 |---|---|---|
-| `install.sh` | On a fresh Pi (safe to re-run) | Docker, Homeport + Watchtower, mDNS (`homeport.local`), hardware watchdog, capped logs, optional HDMI kiosk |
+| `install.sh` | On a fresh Pi (safe to re-run) | Docker, Homeport + Watchtower, mDNS (`homeport.local`), hardware watchdog, capped logs, HDMI kiosk, Wi-Fi setup hotspot |
 | `prepare-image.sh` | Last, on the master unit, before imaging its SD card | Wipes Homeport data, resets SSH host keys / machine-id / saved Wi-Fi, powers off |
 | `uninstall.sh` | To wipe a test Pi back to clean before re-testing `install.sh` | Reverses `install.sh`: containers, data, Docker, kiosk, settings, and only the packages it added |
 
@@ -71,6 +73,28 @@ sudo reboot
 `install.sh` records what it changes in `/var/lib/homeport-install/` (packages it newly
 installed, groups, original hostname and boot mode), so `uninstall.sh` removes exactly
 that and leaves what Pi OS shipped with.
+
+## Wi-Fi setup hotspot
+
+`homeport-wifi-setup.service` (`wifi-setup.py`) gets a Pi onto home Wi-Fi without a cable or
+keyboard:
+
+1. At boot, if Ethernet or a saved Wi-Fi network connects within 90s, nothing happens.
+2. Otherwise the Pi broadcasts an open network, `Homeport-Setup-XXXX`. Joining it from a phone
+   pops up a setup page listing nearby networks.
+3. Pick the network and enter the password. The hotspot closes and the Pi joins it. On failure
+   the hotspot comes back within about a minute, and the page shows what went wrong.
+4. If the network is lost later for 3 minutes (new router, moved house), the hotspot comes back.
+   While broadcasting, it retries saved networks every 5 minutes in case the router was just
+   rebooting.
+
+Settings: `/etc/homeport/wifi-setup.conf` (hotspot name prefix, optional WPA2 password, timings).
+Logs: `journalctl -u homeport-wifi-setup -f`. Skip with `--no-wifi-setup`.
+
+To test on a dev Pi: connect Ethernet, SSH in over it, forget the Wi-Fi network
+(`sudo nmcli connection delete "<name>"`), then unplug Ethernet (SSH drops here). After about
+3 minutes `Homeport-Setup-XXXX` appears on your phone. Run through the setup page, and the Pi
+rejoins your Wi-Fi, reachable again at `homeport.local`.
 
 ## Building a distribution image
 

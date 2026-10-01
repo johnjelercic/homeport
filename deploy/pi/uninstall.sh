@@ -6,6 +6,7 @@
 #   - Deletes /opt/homeport, INCLUDING Homeport data and photos (unless --keep-data)
 #   - Purges Docker Engine, its data (/var/lib/docker) and apt repo (unless --keep-docker)
 #   - Removes the HDMI kiosk and restores the original boot mode (desktop/console)
+#   - Removes the Wi-Fi setup hotspot (saved Wi-Fi networks are kept)
 #   - Removes the mDNS advert, watchdog/journal settings and first-boot service
 #   - Purges only the packages install.sh newly installed, removes group
 #     memberships it added, and restores the original hostname
@@ -98,6 +99,19 @@ if [[ "${ORIG_DM:-none}" == "enabled" ]]; then
     fi
   done
 fi
+
+# ---------------------------------------------------------------- wifi setup
+log "Wi-Fi setup hotspot"
+if [[ -f /etc/systemd/system/homeport-wifi-setup.service ]]; then
+  systemctl disable --now homeport-wifi-setup.service >/dev/null 2>&1 || true
+  rm -f /etc/systemd/system/homeport-wifi-setup.service
+  info "Removed homeport-wifi-setup.service"
+else
+  info "Not installed"
+fi
+nmcli connection delete homeport-setup >/dev/null 2>&1 || true
+rm -f /etc/NetworkManager/dnsmasq-shared.d/homeport-captive.conf
+rm -rf /etc/homeport
 
 # ---------------------------------------------------------------- containers
 log "Homeport and Watchtower containers"

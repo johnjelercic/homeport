@@ -9,6 +9,11 @@
 #   - Hardware watchdog, capped logs (SD-card wear), auto-restart on boot
 #   - Optional HDMI kiosk: full-screen Chromium on the attached display,
 #     which simply stays idle when no display is plugged in
+#   - Wi-Fi setup hotspot: with no network, broadcasts "Homeport-Setup-XXXX";
+#     joining it from a phone opens a page to pick the home Wi-Fi network
+#
+# This is the appliance installer for Raspberry Pi OS. On any other Linux
+# box or NAS that already runs Docker, use deploy/docker/ instead (DIY).
 #
 # Safe to re-run: every step checks or overwrites its own files, and the
 # Homeport data/photos folders are never touched.
@@ -30,6 +35,8 @@
 #   --kiosk              Install the HDMI kiosk (default)
 #   --no-kiosk           Headless only; removes the kiosk if previously installed
 #   --user NAME          Account the kiosk runs as (default: the sudo user)
+#   --no-wifi-setup      Skip the Wi-Fi setup hotspot (removes it if installed)
+#   --wifi-country CC    Wi-Fi country code if none is set yet (default: US)
 #   --verbose            Show full apt/docker output on screen too
 #   --debug              Also echo every command as it runs (bash -x)
 #   -h, --help           Show this help
@@ -48,6 +55,8 @@ HP_HOSTNAME="homeport"
 HP_INTERVAL="300"
 HP_TAG="latest"
 HP_KIOSK="yes"
+HP_WIFI_SETUP="yes"
+HP_WIFI_COUNTRY="US"
 HP_USER="${SUDO_USER:-}"
 HP_IMAGE="ghcr.io/johnjelercic/homeport"
 HP_PORT="19156"
@@ -59,7 +68,7 @@ HP_DEBUG="no"
 HP_VERBOSE="no"
 LOG_FILE="/var/log/homeport-install.log"
 STEP=0
-STEPS_TOTAL=8
+STEPS_TOTAL=9
 step() { STEP=$((STEP+1)); printf '\n\033[1;34m==> [%d/%d] %s\033[0m  \033[2m(%s, +%ss)\033[0m\n' "$STEP" "$STEPS_TOTAL" "$*" "$(date +%H:%M:%S)" "$SECONDS"; }
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 info() { printf '    - %s\n' "$*"; }
@@ -89,6 +98,9 @@ while [[ $# -gt 0 ]]; do
     --tag)      HP_TAG="${2:?}"; shift 2 ;;
     --kiosk)    HP_KIOSK="yes"; shift ;;
     --no-kiosk) HP_KIOSK="no"; shift ;;
+    --wifi-setup)    HP_WIFI_SETUP="yes"; shift ;;
+    --no-wifi-setup) HP_WIFI_SETUP="no"; shift ;;
+    --wifi-country)  HP_WIFI_COUNTRY="${2:?}"; shift 2 ;;
     --user)     HP_USER="${2:?}"; shift 2 ;;
     --debug)    HP_DEBUG="yes"; shift ;;
     --verbose)  HP_VERBOSE="yes"; shift ;;
@@ -121,6 +133,7 @@ info "Hostname:    $HP_HOSTNAME   (currently: $(hostname))"
 info "Image:       $HP_IMAGE:$HP_TAG"
 info "Watchtower:  every ${HP_INTERVAL}s"
 info "Kiosk:       $HP_KIOSK${HP_USER:+ (user: $HP_USER)}"
+info "Wi-Fi setup: $HP_WIFI_SETUP"
 info "Log file:    $LOG_FILE"
 
 # ---------------------------------------------------------------- change tracking
@@ -429,6 +442,13 @@ echo "$HP_SCRIPTS_URL" > "$HP_LIB_DIR/scripts-url"
 SELF="$(realpath "$0" 2>/dev/null || true)"
 SELF_DIR="$(dirname "$SELF")"
 
+# valid_script FILE NAME: syntax-check a download before trusting it.
+valid_script() {
+  case "$2" in
+    *.py) python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read())' "$1" 2>/dev/null ;;
+    *)    bash -n "$1" 2>/dev/null ;;
+  esac
+}
 # save_script NAME LOCAL_SOURCE: keep a copy on this Pi as the offline fallback.
 # Prefers the copy being run right now (so testing an unpushed edit saves that
 # edit); otherwise downloads it; otherwise keeps any copy already saved.
@@ -438,12 +458,12 @@ save_script() {
     install -m 755 "$src" "$dest"; info "Saved $name (from $src)"
   elif [[ "$src" == "$dest" ]]; then
     info "Saved $name is the copy running now"
-  elif curl -fsSL --max-time 30 "$HP_SCRIPTS_URL/$name" -o "$dest.new" && bash -n "$dest.new"; then
+  elif curl -fsSL --max-time 30 "$HP_SCRIPTS_URL/$name" -o "$dest.new" && valid_script "$dest.new" "$name"; then
     install -m 755 "$dest.new" "$dest"; rm -f "$dest.new"; info "Saved $name (latest from GitHub)"
   else
     rm -f "$dest.new"
     if [[ -f "$dest" ]]; then warn "Couldn't download $name; keeping the previously saved copy"
-    else warn "Couldn't download $name; homeport-${name%.sh} will need internet the first time"; fi
+    else warn "Couldn't download $name"; fi
   fi
 }
 if [[ -n "$SELF" && "$(basename "$SELF")" == "install.sh" ]]; then
@@ -490,6 +510,100 @@ ln -sf "$HP_LIB_DIR/run-latest" /usr/local/sbin/homeport-install
 ln -sf "$HP_LIB_DIR/run-latest" /usr/local/sbin/homeport-uninstall
 info "Installed /usr/local/sbin/homeport-install and homeport-uninstall"
 
+# ---------------------------------------------------------------- wifi setup
+step "Wi-Fi setup hotspot"
+WIFI_UNIT=/etc/systemd/system/homeport-wifi-setup.service
+if [[ "$HP_WIFI_SETUP" == "yes" ]]; then
+  if ! systemctl is-active --quiet NetworkManager; then
+    warn "NetworkManager isn't running (needs Pi OS Bookworm or newer): skipping Wi-Fi setup"
+  elif [[ ! -e /sys/class/net/wlan0 ]]; then
+    warn "No Wi-Fi adapter (wlan0): skipping Wi-Fi setup"
+  else
+    apt_install python3
+    # Pi OS keeps Wi-Fi switched off until a country is set (radio regulations).
+    if command -v raspi-config >/dev/null 2>&1; then
+      WIFI_CC="$(raspi-config nonint get_wifi_country 2>/dev/null || true)"
+      if [[ -z "$WIFI_CC" ]]; then
+        if raspi-config nonint do_wifi_country "$HP_WIFI_COUNTRY" >/dev/null 2>&1; then
+          info "Wi-Fi country set to $HP_WIFI_COUNTRY"
+        else
+          warn "Couldn't set the Wi-Fi country; set it with: sudo raspi-config"
+        fi
+      else
+        info "Wi-Fi country: $WIFI_CC"
+      fi
+    fi
+    rfkill unblock wifi 2>/dev/null || true
+
+    if [[ -n "$SELF" && "$(basename "$SELF")" == "install.sh" && "$SELF_DIR" != "$HP_LIB_DIR" ]]; then
+      save_script wifi-setup.py "$SELF_DIR/wifi-setup.py"
+    else
+      save_script wifi-setup.py ""
+    fi
+
+    if [[ -f "$HP_LIB_DIR/wifi-setup.py" ]]; then
+      mkdir -p /etc/homeport /etc/NetworkManager/dnsmasq-shared.d
+      if [[ ! -f /etc/homeport/wifi-setup.conf ]]; then
+        cat > /etc/homeport/wifi-setup.conf <<'EOF'
+# Homeport Wi-Fi setup hotspot. Uncomment a setting to change it, then:
+#   sudo systemctl restart homeport-wifi-setup
+# (Keep comments on their own lines; text after a value is part of the value.)
+
+# Hotspot name prefix; the last 4 characters of the Wi-Fi MAC are appended.
+#SSID_PREFIX=Homeport-Setup
+
+# Empty = open setup network. 8+ characters = WPA2-protected setup network.
+#AP_PASSWORD=
+
+# Seconds to wait for a network at boot before broadcasting.
+#BOOT_GRACE=90
+
+# Seconds offline (after having been online) before broadcasting again.
+#LOST_GRACE=180
+
+# Seconds between retries of saved networks while broadcasting.
+#RETRY_SAVED_EVERY=300
+EOF
+      fi
+      # Captive portal: while the hotspot is up, every DNS name points at the
+      # setup page, so phones pop it up automatically. Only affects NetworkManager
+      # "shared" connections (the hotspot), never the Pi's own DNS.
+      echo "address=/#/10.42.0.1" > /etc/NetworkManager/dnsmasq-shared.d/homeport-captive.conf
+      cat > "$WIFI_UNIT" <<EOF
+[Unit]
+Description=Homeport Wi-Fi setup hotspot
+After=NetworkManager.service
+Wants=NetworkManager.service
+
+[Service]
+ExecStart=/usr/bin/python3 $HP_LIB_DIR/wifi-setup.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+      systemctl daemon-reload
+      systemctl enable homeport-wifi-setup.service >/dev/null
+      systemctl restart homeport-wifi-setup.service
+      info "With no network for 90s at boot (3 min later on), broadcasts Homeport-Setup-$(tr -d ':' < /sys/class/net/wlan0/address | tail -c 5 | tr '[:lower:]' '[:upper:]')"
+      info "Settings: /etc/homeport/wifi-setup.conf   Logs: journalctl -u homeport-wifi-setup"
+    else
+      warn "wifi-setup.py unavailable: Wi-Fi setup not installed"
+    fi
+  fi
+else
+  if [[ -f "$WIFI_UNIT" ]]; then
+    info "Removing previously installed Wi-Fi setup"
+    systemctl disable --now homeport-wifi-setup.service >/dev/null 2>&1 || true
+    rm -f "$WIFI_UNIT" /etc/NetworkManager/dnsmasq-shared.d/homeport-captive.conf
+    nmcli connection delete homeport-setup >/dev/null 2>&1 || true
+    systemctl daemon-reload
+  else
+    info "Skipped (--no-wifi-setup)"
+  fi
+fi
+
 # ---------------------------------------------------------------- summary
 IP="$(hostname -I | awk '{print $1}')"
 log "Done in $((SECONDS / 60))m $((SECONDS % 60))s"
@@ -499,6 +613,7 @@ cat <<EOF
   Image:       $HP_IMAGE:$HP_TAG
   Watchtower:  checks every ${HP_INTERVAL}s
   Kiosk:       $HP_KIOSK
+  Wi-Fi setup: $HP_WIFI_SETUP
   Config:      $HP_DIR/.env  (edit, then: cd $HP_DIR && sudo docker compose up -d)
   Install log: $LOG_FILE
   Commands:    sudo homeport-install    (update / re-run with the latest script)

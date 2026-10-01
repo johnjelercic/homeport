@@ -1,0 +1,44 @@
+# Homeport — DIY install for any Linux machine or NAS that already runs Docker.
+#
+#   mkdir homeport && cd homeport
+#   curl -fsSLO https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/docker/docker-compose.yml
+#   docker compose up -d                          # Homeport only
+#   docker compose --profile autoupdate up -d     # Homeport + automatic updates (Watchtower)
+#
+# Then open http://<this-machine>:19156/  (settings at /settings.html).
+# Data and photos are kept in ./data and ./photos next to this file.
+# Nothing outside Docker is installed or changed on the host.
+
+services:
+  homeport:
+    image: ghcr.io/johnjelercic/homeport:latest
+    container_name: homeport
+    restart: unless-stopped
+    ports:
+      - "19156:19156"
+    volumes:
+      - ./data:/app/data
+      - ./photos:/app/public/photos
+    environment:
+      - TZ=${TZ:-UTC}        # your timezone, e.g. America/Chicago
+      - SYNC_INTERVAL_MINUTES=15         # how often calendars are re-synced
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"
+
+  # Optional: start with `--profile autoupdate` to keep Homeport up to date.
+  # Uses the maintained Watchtower fork; only updates containers carrying the
+  # label above, so it won't touch anything else you run.
+  watchtower:
+    image: nickfedor/watchtower:latest
+    container_name: homeport-watchtower
+    restart: unless-stopped
+    profiles: ["autoupdate"]
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - TZ=${TZ:-UTC}
+      - WATCHTOWER_POLL_INTERVAL=${WATCHTOWER_POLL_INTERVAL:-3600}   # seconds between checks
+      - WATCHTOWER_LABEL_ENABLE=true
+      - WATCHTOWER_CLEANUP=true
+    labels:
+      - "com.centurylinklabs.watchtower.enable=true"

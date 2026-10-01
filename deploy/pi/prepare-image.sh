@@ -9,7 +9,8 @@
 #   - SSH host keys removed  -> regenerated on first boot (homeport-firstboot)
 #   - machine-id cleared     -> regenerated on first boot; also gives each
 #                               unit its own DHCP identity / IP lease
-#   - Saved Wi-Fi networks removed (your Wi-Fi password stays home)
+#   - Saved Wi-Fi networks removed (your Wi-Fi password stays home); clones
+#     then boot into the Homeport-Setup hotspot until the buyer picks theirs
 #   - Logs and shell history cleared
 # Kept: the Homeport/Watchtower images (so first boot doesn't need a big
 # download), all install.sh configuration, and the login user's
@@ -59,12 +60,15 @@ rm -f /etc/ssh/ssh_host_*
 systemctl enable homeport-firstboot.service >/dev/null
 
 if [[ "$KEEP_WIFI" != "yes" ]]; then
-  echo "==> Removing saved Wi-Fi networks"
-  if command -v nmcli >/dev/null 2>&1; then
-    nmcli -t -f NAME,TYPE connection show | awk -F: '$2=="802-11-wireless"{print $1}' |
-      while IFS= read -r c; do nmcli connection delete "$c" >/dev/null || true; done
-  fi
-  rm -f /etc/NetworkManager/system-connections/*.nmconnection 2>/dev/null || true
+  # Remove the saved profiles from disk only. Deleting them through nmcli would
+  # drop the live connection — and this SSH session with it — before the script
+  # finishes. They're gone from the next boot on, which is when it matters:
+  # clones boot with no Wi-Fi saved and offer the Homeport-Setup hotspot.
+  echo "==> Removing saved Wi-Fi networks (takes effect at next boot)"
+  for f in /etc/NetworkManager/system-connections/*.nmconnection; do
+    [[ -e "$f" ]] || continue
+    if grep -qE '^type=(wifi|802-11-wireless)$' "$f"; then rm -f "$f"; fi
+  done
 fi
 
 echo "==> Clearing logs and history"
