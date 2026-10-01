@@ -24,7 +24,11 @@
 #   --kiosk              Install the HDMI kiosk (default)
 #   --no-kiosk           Headless only; removes the kiosk if previously installed
 #   --user NAME          Account the kiosk runs as (default: the sudo user)
+#   --debug              Also echo every command as it runs (bash -x)
 #   -h, --help           Show this help
+#
+# Progress is printed as numbered steps with elapsed time, and everything
+# (including apt/docker output) is also saved to /var/log/homeport-install.log.
 
 set -euo pipefail
 
@@ -38,7 +42,13 @@ HP_IMAGE="ghcr.io/johnjelercic/homeport"
 HP_PORT="19156"
 HP_DIR="/opt/homeport"
 
+HP_DEBUG="no"
+LOG_FILE="/var/log/homeport-install.log"
+STEP=0
+STEPS_TOTAL=7
+step() { STEP=$((STEP+1)); printf '\n\033[1;34m==> [%d/%d] %s\033[0m  \033[2m(%s, +%ss)\033[0m\n' "$STEP" "$STEPS_TOTAL" "$*" "$(date +%H:%M:%S)" "$SECONDS"; }
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
+info() { printf '    - %s\n' "$*"; }
 warn() { printf '\033[1;33m[warn] %s\033[0m\n' "$*" >&2; }
 die()  { printf '\033[1;31m[error] %s\033[0m\n' "$*" >&2; exit 1; }
 usage() {
@@ -56,6 +66,7 @@ while [[ $# -gt 0 ]]; do
     --kiosk)    HP_KIOSK="yes"; shift ;;
     --no-kiosk) HP_KIOSK="no"; shift ;;
     --user)     HP_USER="${2:?}"; shift 2 ;;
+    --debug)    HP_DEBUG="yes"; shift ;;
     -h|--help)  usage ;;
     *) die "Unknown option: $1 (try --help)" ;;
   esac
@@ -75,24 +86,40 @@ fi
 CODENAME="${VERSION_CODENAME:?}"
 export DEBIAN_FRONTEND=noninteractive
 
+# Mirror all output (ours, apt's, docker's) to a log file as well as the screen.
+exec > >(tee -a "$LOG_FILE") 2>&1
+[[ "$HP_DEBUG" == "yes" ]] && set -x
+
+log "Homeport installer — $(date '+%Y-%m-%d %H:%M:%S')"
+info "OS:          $PRETTY_NAME ($(uname -m))"
+info "Hostname:    $HP_HOSTNAME   (currently: $(hostname))"
+info "Image:       $HP_IMAGE:$HP_TAG"
+info "Watchtower:  every ${HP_INTERVAL}s"
+info "Kiosk:       $HP_KIOSK${HP_USER:+ (user: $HP_USER)}"
+info "Log file:    $LOG_FILE"
+
 # ---------------------------------------------------------------- base packages
-log "Installing base packages"
-apt-get update -q
-apt-get install -y -q ca-certificates curl gnupg avahi-daemon avahi-utils
+step "Installing base packages (curl, certificates, Avahi mDNS)"
+apt-get update
+apt-get install -y ca-certificates curl gnupg avahi-daemon avahi-utils
 
 # ---------------------------------------------------------------- docker
+step "Docker Engine"
 if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>&1; then
-  log "Installing Docker Engine (Docker's apt repo, Debian $CODENAME)"
+  info "Not installed: adding Docker's apt repository (Debian $CODENAME) and installing"
   install -m 0755 -d /etc/apt/keyrings
   curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
   chmod a+r /etc/apt/keyrings/docker.asc
   echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $CODENAME stable" \
     > /etc/apt/sources.list.d/docker.list
-  apt-get update -q
-  apt-get install -y -q docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt-get update
+  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 else
-  log "Docker already installed: $(docker --version)"
+  info "Already installed"
 fi
+info "$(docker --version)"
+info "$(docker compose version)"
+info "Writing /etc/docker/daemon.json (rotated logs: 3 x 10 MB per container)"
 
 # Small, rotated container logs so they can't fill or wear out the SD card.
 mkdir -p /etc/docker
@@ -102,17 +129,20 @@ cat > /etc/docker/daemon.json <<'EOF'
   "log-opts": { "max-size": "10m", "max-file": "3" }
 }
 EOF
+info "Restarting Docker to apply log settings"
 systemctl enable docker >/dev/null
 systemctl restart docker
 
 if [[ -n "$HP_USER" && "$HP_USER" != "root" ]]; then
   usermod -aG docker "$HP_USER"   # lets you run docker without sudo (next login)
+  info "Added '$HP_USER' to the docker group (takes effect at next login)"
 fi
 
 # ---------------------------------------------------------------- hostname + mDNS
-log "Setting hostname '$HP_HOSTNAME' and mDNS advertisement"
+step "Hostname and mDNS"
 CURRENT_HOST="$(hostname)"
 if [[ "$CURRENT_HOST" != "$HP_HOSTNAME" ]]; then
+  info "Changing hostname: $CURRENT_HOST -> $HP_HOSTNAME"
   hostnamectl set-hostname "$HP_HOSTNAME"
   if grep -qE '^127\.0\.1\.1\s' /etc/hosts; then
     sed -i -E "s/^127\.0\.1\.1\s.*/127.0.1.1\t$HP_HOSTNAME/" /etc/hosts
@@ -121,7 +151,9 @@ if [[ "$CURRENT_HOST" != "$HP_HOSTNAME" ]]; then
   fi
 fi
 
+[[ "$CURRENT_HOST" == "$HP_HOSTNAME" ]] && info "Hostname already '$HP_HOSTNAME'"
 # Advertise the web UI so it appears in Bonjour/mDNS browsers.
+info "Advertising http://$HP_HOSTNAME.local:$HP_PORT/ via Avahi (_http._tcp)"
 cat > /etc/avahi/services/homeport.service <<EOF
 <?xml version="1.0" standalone='no'?>
 <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
@@ -138,7 +170,9 @@ systemctl enable avahi-daemon >/dev/null
 systemctl restart avahi-daemon
 
 # ---------------------------------------------------------------- reliability
-log "Enabling hardware watchdog and capping the system journal"
+step "Reliability: watchdog, log caps, first-boot SSH host keys"
+info "Hardware watchdog: reboot if the system hangs for 15s"
+info "System journal capped at 64 MB"
 mkdir -p /etc/systemd/system.conf.d /etc/systemd/journald.conf.d
 cat > /etc/systemd/system.conf.d/homeport-watchdog.conf <<'EOF'
 # Reboot automatically if the system hangs (Pi hardware watchdog).
@@ -178,9 +212,11 @@ WantedBy=multi-user.target
 EOF
 systemctl daemon-reload
 systemctl enable homeport-firstboot.service >/dev/null
+info "homeport-firstboot.service enabled (regenerates SSH host keys on cloned units)"
 
 # ---------------------------------------------------------------- homeport stack
-log "Writing $HP_DIR/docker-compose.yml"
+step "Homeport and Watchtower containers"
+info "Writing $HP_DIR/docker-compose.yml and .env"
 mkdir -p "$HP_DIR/data" "$HP_DIR/photos"
 TZ_HOST="$(timedatectl show -p Timezone --value 2>/dev/null || echo UTC)"
 
@@ -229,25 +265,35 @@ services:
       - "com.centurylinklabs.watchtower.enable=true"   # keep itself patched
 EOF
 
-log "Pulling and starting containers"
+info "Timezone: $TZ_HOST"
+info "Pulling images (first run downloads ~100-200 MB)"
 cd "$HP_DIR"
 docker compose pull
+info "Starting containers"
 docker compose up -d --remove-orphans
+docker compose ps
 
-log "Waiting for Homeport to answer on port $HP_PORT"
-for _ in $(seq 1 60); do
+step "Waiting for Homeport to answer on port $HP_PORT"
+for i in $(seq 1 60); do
   if curl -fsS -o /dev/null "http://localhost:$HP_PORT/"; then UP=yes; break; fi
+  (( i % 5 == 0 )) && info "still waiting... ($((i * 2))s)"
   sleep 2
 done
-[[ "${UP:-}" == "yes" ]] || warn "Homeport did not respond within 2 minutes; check: docker logs homeport"
+if [[ "${UP:-}" == "yes" ]]; then
+  info "Homeport is up"
+else
+  warn "Homeport did not respond within 2 minutes; recent container logs:"
+  docker logs --tail 30 homeport || true
+fi
 
 # ---------------------------------------------------------------- kiosk
 KIOSK_UNIT=/etc/systemd/system/homeport-kiosk.service
+step "HDMI kiosk"
 if [[ "$HP_KIOSK" == "yes" ]]; then
-  log "Installing HDMI kiosk (cage + Chromium) for user '$HP_USER'"
+  info "Installing cage + Chromium for user '$HP_USER' (Chromium is a large download)"
   CHROMIUM_PKG=chromium
   apt-cache show chromium >/dev/null 2>&1 || CHROMIUM_PKG=chromium-browser
-  apt-get install -y -q --no-install-recommends cage "$CHROMIUM_PKG" fonts-noto-color-emoji
+  apt-get install -y --no-install-recommends cage "$CHROMIUM_PKG" fonts-noto-color-emoji
   CHROMIUM_BIN="$(command -v chromium || command -v chromium-browser)"
   for g in video render input; do
     if getent group "$g" >/dev/null; then usermod -aG "$g" "$HP_USER"; fi
@@ -306,9 +352,16 @@ EOF
   systemctl daemon-reload
   systemctl enable homeport-kiosk.service >/dev/null
   systemctl restart --no-block homeport-kiosk.service || true
+  if grep -qx connected /sys/class/drm/card*-HDMI-A-*/status 2>/dev/null; then
+    info "HDMI display detected: kiosk starting now"
+  else
+    info "No HDMI display connected: kiosk will start when one is plugged in"
+  fi
 else
-  if [[ -f "$KIOSK_UNIT" ]]; then
-    log "Removing HDMI kiosk"
+  if [[ ! -f "$KIOSK_UNIT" ]]; then
+    info "Skipped (--no-kiosk)"
+  else
+    info "Removing previously installed kiosk"
     systemctl disable --now homeport-kiosk.service >/dev/null 2>&1 || true
     rm -f "$KIOSK_UNIT" /usr/local/bin/homeport-kiosk
     systemctl enable getty@tty1.service >/dev/null 2>&1 || true
@@ -318,7 +371,7 @@ fi
 
 # ---------------------------------------------------------------- summary
 IP="$(hostname -I | awk '{print $1}')"
-log "Done"
+log "Done in $((SECONDS / 60))m $((SECONDS % 60))s"
 cat <<EOF
   Homeport:    http://$HP_HOSTNAME.local:$HP_PORT/   (or http://$IP:$HP_PORT/)
   Settings:    http://$HP_HOSTNAME.local:$HP_PORT/settings.html
@@ -326,6 +379,7 @@ cat <<EOF
   Watchtower:  checks every ${HP_INTERVAL}s
   Kiosk:       $HP_KIOSK
   Config:      $HP_DIR/.env  (edit, then: cd $HP_DIR && sudo docker compose up -d)
+  Install log: $LOG_FILE
 EOF
 if [[ "$HP_HOSTNAME" != "$CURRENT_HOST" ]]; then
   echo "  Hostname changed from '$CURRENT_HOST': reboot recommended (sudo reboot)."
