@@ -30,14 +30,16 @@
 #   --kiosk              Install the HDMI kiosk (default)
 #   --no-kiosk           Headless only; removes the kiosk if previously installed
 #   --user NAME          Account the kiosk runs as (default: the sudo user)
+#   --verbose            Show full apt/docker output on screen too
 #   --debug              Also echo every command as it runs (bash -x)
 #   -h, --help           Show this help
 #
 # What it changes is recorded in /var/lib/homeport-install/ so uninstall.sh
 # can reverse exactly that (and leave anything Pi OS already had alone).
 #
-# Progress is printed as numbered steps with elapsed time, and everything
-# (including apt/docker output) is also saved to /var/log/homeport-install.log.
+# The screen shows numbered steps and a line or two per step; the full
+# apt/docker output goes to /var/log/homeport-install.log (and is shown
+# automatically if a command fails).
 
 set -euo pipefail
 
@@ -54,12 +56,23 @@ HP_LIB_DIR="/usr/local/lib/homeport"
 HP_SCRIPTS_URL="${HOMEPORT_SCRIPTS_URL:-https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi}"
 
 HP_DEBUG="no"
+HP_VERBOSE="no"
 LOG_FILE="/var/log/homeport-install.log"
 STEP=0
 STEPS_TOTAL=8
 step() { STEP=$((STEP+1)); printf '\n\033[1;34m==> [%d/%d] %s\033[0m  \033[2m(%s, +%ss)\033[0m\n' "$STEP" "$STEPS_TOTAL" "$*" "$(date +%H:%M:%S)" "$SECONDS"; }
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 info() { printf '    - %s\n' "$*"; }
+# run CMD...: noisy commands write only to the log file; on failure, show its tail.
+run() {
+  if [[ "$HP_VERBOSE" == "yes" ]]; then "$@"; return; fi
+  if ! "$@" >>"$LOG_FILE" 2>&1; then
+    warn "Failed: $*"
+    warn "Last lines of $LOG_FILE:"
+    tail -n 25 "$LOG_FILE" >&2
+    return 1
+  fi
+}
 warn() { printf '\033[1;33m[warn] %s\033[0m\n' "$*" >&2; }
 die()  { printf '\033[1;31m[error] %s\033[0m\n' "$*" >&2; exit 1; }
 usage() {
@@ -78,6 +91,7 @@ while [[ $# -gt 0 ]]; do
     --no-kiosk) HP_KIOSK="no"; shift ;;
     --user)     HP_USER="${2:?}"; shift 2 ;;
     --debug)    HP_DEBUG="yes"; shift ;;
+    --verbose)  HP_VERBOSE="yes"; shift ;;
     -h|--help)  usage ;;
     *) die "Unknown option: $1 (try --help)" ;;
   esac
@@ -119,7 +133,7 @@ pkg_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "insta
 apt_install() {
   local a new=()
   for a in "$@"; do [[ "$a" == -* ]] || pkg_installed "$a" || new+=("$a"); done
-  apt-get install -y "$@"
+  run apt-get install -y "$@"
   for a in "${new[@]}"; do
     grep -qx "$a" "$STATE_DIR/packages" 2>/dev/null || echo "$a" >> "$STATE_DIR/packages"
   done
@@ -134,7 +148,7 @@ add_group() {
 
 # ---------------------------------------------------------------- base packages
 step "Installing base packages (curl, certificates, Avahi mDNS)"
-apt-get update
+run apt-get update
 apt_install ca-certificates curl gnupg avahi-daemon avahi-utils
 
 # ---------------------------------------------------------------- docker
@@ -146,7 +160,7 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
   chmod a+r /etc/apt/keyrings/docker.asc
   echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $CODENAME stable" \
     > /etc/apt/sources.list.d/docker.list
-  apt-get update
+  run apt-get update
   apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 else
   info "Already installed"
@@ -302,15 +316,15 @@ EOF
 info "Timezone: $TZ_HOST"
 info "Pulling images (first run downloads ~100-200 MB)"
 cd "$HP_DIR"
-docker compose pull
+run docker compose pull
 info "Starting containers"
-docker compose up -d --remove-orphans
-docker compose ps
+run docker compose up -d --remove-orphans
+info "Running: $(docker compose ps --format '{{.Name}}' | paste -sd ' ')"
 
 step "Waiting for Homeport to answer on port $HP_PORT"
 for i in $(seq 1 60); do
   if curl -fsS -o /dev/null "http://localhost:$HP_PORT/"; then UP=yes; break; fi
-  (( i % 5 == 0 )) && info "still waiting... ($((i * 2))s)"
+  (( i % 15 == 0 )) && info "still waiting... ($((i * 2))s)"
   sleep 2
 done
 if [[ "${UP:-}" == "yes" ]]; then

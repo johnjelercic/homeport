@@ -27,7 +27,7 @@ Each command downloads the latest script from GitHub, saves it to `/usr/local/li
 and runs it. Offline, it runs the saved copy instead. `--local` skips the download. Any other
 options are passed through, e.g. `sudo homeport-install --interval 3600`.
 
-Options: `--hostname NAME`, `--interval SECONDS` (Watchtower check, default 300),
+Options: `--hostname NAME`, `--interval SECONDS` (Watchtower check, default 300), `--verbose` (full apt/docker output),
 `--tag TAG` (image tag, default `latest`), `--kiosk` (default) / `--no-kiosk`, `--user NAME`, `--debug`.
 
 After install: `http://homeport.local:19156/` (settings at `/settings.html`).
