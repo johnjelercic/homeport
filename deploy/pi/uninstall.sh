@@ -18,6 +18,8 @@
 #   sudo ./uninstall.sh --yes           # no prompt
 #   sudo ./uninstall.sh --keep-docker   # faster re-tests: keep Docker installed
 #   sudo ./uninstall.sh --keep-data     # keep /opt/homeport/data and photos
+#   sudo ./uninstall.sh --keep-commands # keep homeport-install/-uninstall for the next test
+# (sudo homeport-uninstall takes the same options.)
 
 set -euo pipefail
 
@@ -25,7 +27,7 @@ HP_DIR="/opt/homeport"
 STATE_DIR="/var/lib/homeport-install"
 LOG_FILE="/var/log/homeport-install.log"
 DOCKER_PKGS=(docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin docker-ce-rootless-extras)
-ASSUME_YES="no"; KEEP_DOCKER="no"; KEEP_DATA="no"
+ASSUME_YES="no"; KEEP_DOCKER="no"; KEEP_DATA="no"; KEEP_COMMANDS="no"
 
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 info() { printf '    - %s\n' "$*"; }
@@ -36,6 +38,7 @@ for a in "$@"; do
     --yes|-y)      ASSUME_YES="yes" ;;
     --keep-docker) KEEP_DOCKER="yes" ;;
     --keep-data)   KEEP_DATA="yes" ;;
+    --keep-commands) KEEP_COMMANDS="yes" ;;
     -h|--help)     sed -n '2,/^set -euo/{/^set -euo/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     *) echo "Unknown option: $a" >&2; exit 1 ;;
   esac
@@ -192,6 +195,18 @@ if [[ -f "$STATE_DIR/hostname" ]]; then
     hostnamectl set-hostname "$ORIG_HOST"
     sed -i -E "s/^127\.0\.1\.1\s.*/127.0.1.1\t$ORIG_HOST/" /etc/hosts
   fi
+fi
+
+# ---------------------------------------------------------------- commands
+# Safe even when this script is running from /usr/local/lib/homeport: bash
+# keeps reading the already-open file after it's unlinked.
+if [[ "$KEEP_COMMANDS" == "yes" ]]; then
+  log "Kept homeport-install and homeport-uninstall (--keep-commands)"
+else
+  log "Removing homeport-install and homeport-uninstall"
+  rm -f /usr/local/sbin/homeport-install /usr/local/sbin/homeport-uninstall
+  rm -rf /usr/local/lib/homeport
+  info "To install again: curl -fsSL https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi/install.sh | sudo bash"
 fi
 
 rm -rf "$STATE_DIR"

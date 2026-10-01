@@ -14,8 +14,14 @@
 # Homeport data/photos folders are never touched.
 #
 # Usage (on the Pi):
-#   sudo ./install.sh [options]
-#   curl -fsSL https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi/install.sh | sudo bash -s -- [options]
+#   First install:  curl -fsSL https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi/install.sh | sudo bash
+#   Afterwards:     sudo homeport-install [options]     (fetches the latest script itself)
+#                   sudo homeport-uninstall [options]
+#   Or locally:     sudo ./install.sh [options]
+#
+# homeport-install / homeport-uninstall download the latest script from
+# GitHub each run and fall back to the copy saved in /usr/local/lib/homeport
+# when offline; --local skips the download.
 #
 # Options:
 #   --hostname NAME      mDNS/host name (default: homeport -> homeport.local)
@@ -44,11 +50,13 @@ HP_USER="${SUDO_USER:-}"
 HP_IMAGE="ghcr.io/johnjelercic/homeport"
 HP_PORT="19156"
 HP_DIR="/opt/homeport"
+HP_LIB_DIR="/usr/local/lib/homeport"
+HP_SCRIPTS_URL="${HOMEPORT_SCRIPTS_URL:-https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi}"
 
 HP_DEBUG="no"
 LOG_FILE="/var/log/homeport-install.log"
 STEP=0
-STEPS_TOTAL=7
+STEPS_TOTAL=8
 step() { STEP=$((STEP+1)); printf '\n\033[1;34m==> [%d/%d] %s\033[0m  \033[2m(%s, +%ss)\033[0m\n' "$STEP" "$STEPS_TOTAL" "$*" "$(date +%H:%M:%S)" "$SECONDS"; }
 log()  { printf '\n\033[1;34m==> %s\033[0m\n' "$*"; }
 info() { printf '    - %s\n' "$*"; }
@@ -400,6 +408,74 @@ else
   fi
 fi
 
+# ---------------------------------------------------------------- management commands
+step "Management commands: homeport-install, homeport-uninstall"
+mkdir -p "$HP_LIB_DIR"
+echo "$HP_SCRIPTS_URL" > "$HP_LIB_DIR/scripts-url"
+SELF="$(realpath "$0" 2>/dev/null || true)"
+SELF_DIR="$(dirname "$SELF")"
+
+# save_script NAME LOCAL_SOURCE: keep a copy on this Pi as the offline fallback.
+# Prefers the copy being run right now (so testing an unpushed edit saves that
+# edit); otherwise downloads it; otherwise keeps any copy already saved.
+save_script() {
+  local name="$1" src="$2" dest="$HP_LIB_DIR/$1"
+  if [[ -f "$src" && "$src" != "$dest" ]]; then
+    install -m 755 "$src" "$dest"; info "Saved $name (from $src)"
+  elif [[ "$src" == "$dest" ]]; then
+    info "Saved $name is the copy running now"
+  elif curl -fsSL --max-time 30 "$HP_SCRIPTS_URL/$name" -o "$dest.new" && bash -n "$dest.new"; then
+    install -m 755 "$dest.new" "$dest"; rm -f "$dest.new"; info "Saved $name (latest from GitHub)"
+  else
+    rm -f "$dest.new"
+    if [[ -f "$dest" ]]; then warn "Couldn't download $name; keeping the previously saved copy"
+    else warn "Couldn't download $name; homeport-${name%.sh} will need internet the first time"; fi
+  fi
+}
+if [[ -n "$SELF" && "$(basename "$SELF")" == "install.sh" ]]; then
+  save_script install.sh "$SELF"
+  # Run via homeport-install, the saved uninstall.sh sits beside us: refresh it from GitHub instead.
+  if [[ "$SELF_DIR" == "$HP_LIB_DIR" ]]; then save_script uninstall.sh ""
+  else save_script uninstall.sh "$SELF_DIR/uninstall.sh"; fi
+else
+  save_script install.sh ""      # piped from curl: nothing on disk to copy
+  save_script uninstall.sh ""
+fi
+
+# One wrapper serves both commands; it works out which script from its own name.
+cat > "$HP_LIB_DIR/run-latest" <<'EOF'
+#!/usr/bin/env bash
+# homeport-install / homeport-uninstall: run the latest script from GitHub,
+# or the copy saved on this Pi when offline. --local skips the download.
+set -euo pipefail
+LIB_DIR=/usr/local/lib/homeport
+NAME="$(basename "$0")"; SCRIPT="${NAME#homeport-}.sh"
+[[ $EUID -eq 0 ]] || exec sudo "$0" "$@"
+USE_LOCAL=no; ARGS=()
+for a in "$@"; do
+  if [[ "$a" == "--local" ]]; then USE_LOCAL=yes; else ARGS+=("$a"); fi
+done
+BASE_URL="${HOMEPORT_SCRIPTS_URL:-$(cat "$LIB_DIR/scripts-url" 2>/dev/null || true)}"
+if [[ "$USE_LOCAL" == "no" && -n "$BASE_URL" ]]; then
+  TMP="$(mktemp)"
+  if curl -fsSL --max-time 30 "$BASE_URL/$SCRIPT" -o "$TMP" && bash -n "$TMP"; then
+    install -m 755 "$TMP" "$LIB_DIR/$SCRIPT"
+    echo "==> Running latest $SCRIPT from $BASE_URL"
+  else
+    echo "[warn] Couldn't download $SCRIPT; using the copy saved on this Pi" >&2
+  fi
+  rm -f "$TMP"
+else
+  echo "==> Running saved $SCRIPT ($LIB_DIR)"
+fi
+[[ -f "$LIB_DIR/$SCRIPT" ]] || { echo "[error] No saved copy of $SCRIPT in $LIB_DIR" >&2; exit 1; }
+exec bash "$LIB_DIR/$SCRIPT" "${ARGS[@]}"
+EOF
+chmod 755 "$HP_LIB_DIR/run-latest"
+ln -sf "$HP_LIB_DIR/run-latest" /usr/local/sbin/homeport-install
+ln -sf "$HP_LIB_DIR/run-latest" /usr/local/sbin/homeport-uninstall
+info "Installed /usr/local/sbin/homeport-install and homeport-uninstall"
+
 # ---------------------------------------------------------------- summary
 IP="$(hostname -I | awk '{print $1}')"
 log "Done in $((SECONDS / 60))m $((SECONDS % 60))s"
@@ -411,6 +487,8 @@ cat <<EOF
   Kiosk:       $HP_KIOSK
   Config:      $HP_DIR/.env  (edit, then: cd $HP_DIR && sudo docker compose up -d)
   Install log: $LOG_FILE
+  Commands:    sudo homeport-install    (update / re-run with the latest script)
+               sudo homeport-uninstall  (remove everything)
 EOF
 if [[ "$HP_HOSTNAME" != "$CURRENT_HOST" ]]; then
   echo "  Hostname changed from '$CURRENT_HOST': reboot recommended (sudo reboot)."

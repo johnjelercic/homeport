@@ -10,19 +10,25 @@ Scripts that turn a fresh Raspberry Pi OS (64-bit) install into a Homeport appli
 
 ## Install
 
-```bash
-scp deploy/pi/install.sh homeport:~/
-ssh homeport 'sudo ./install.sh'
-```
-
-Or straight from GitHub:
+First install on a fresh Pi (the only time you need curl):
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi/install.sh | sudo bash
 ```
 
+That also installs two commands, so from then on:
+
+```bash
+sudo homeport-install      # re-run / update with the latest install.sh
+sudo homeport-uninstall    # remove everything
+```
+
+Each command downloads the latest script from GitHub, saves it to `/usr/local/lib/homeport/`,
+and runs it. Offline, it runs the saved copy instead. `--local` skips the download. Any other
+options are passed through, e.g. `sudo homeport-install --interval 3600`.
+
 Options: `--hostname NAME`, `--interval SECONDS` (Watchtower check, default 300),
-`--tag TAG` (image tag, default `latest`), `--kiosk` (default) / `--no-kiosk`, `--user NAME`.
+`--tag TAG` (image tag, default `latest`), `--kiosk` (default) / `--no-kiosk`, `--user NAME`, `--debug`.
 
 After install: `http://homeport.local:19156/` (settings at `/settings.html`).
 
@@ -55,9 +61,10 @@ sudo ./install.sh --no-kiosk              # remove it
 ## Re-testing from clean
 
 ```bash
-sudo ./uninstall.sh                 # full wipe (asks you to type REMOVE)
-sudo ./uninstall.sh --keep-docker   # quicker: keep Docker installed
-sudo ./uninstall.sh --keep-data     # keep Homeport data and photos
+sudo homeport-uninstall                   # full wipe (asks you to type REMOVE)
+sudo homeport-uninstall --keep-docker     # quicker: keep Docker installed
+sudo homeport-uninstall --keep-data       # keep Homeport data and photos
+sudo homeport-uninstall --keep-commands   # keep homeport-install for the next test
 sudo reboot
 ```
 
