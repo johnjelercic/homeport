@@ -6,6 +6,7 @@ Scripts that turn a fresh Raspberry Pi OS (64-bit) install into a Homeport appli
 |---|---|---|
 | `install.sh` | On a fresh Pi (safe to re-run) | Docker, Homeport + Watchtower, mDNS (`homeport.local`), hardware watchdog, capped logs, optional HDMI kiosk |
 | `prepare-image.sh` | Last, on the master unit, before imaging its SD card | Wipes Homeport data, resets SSH host keys / machine-id / saved Wi-Fi, powers off |
+| `uninstall.sh` | To wipe a test Pi back to clean before re-testing `install.sh` | Reverses `install.sh`: containers, data, Docker, kiosk, settings, and only the packages it added |
 
 ## Install
 
@@ -50,6 +51,19 @@ sudo systemctl status homeport-kiosk      # state
 journalctl -u homeport-kiosk -f           # logs
 sudo ./install.sh --no-kiosk              # remove it
 ```
+
+## Re-testing from clean
+
+```bash
+sudo ./uninstall.sh                 # full wipe (asks you to type REMOVE)
+sudo ./uninstall.sh --keep-docker   # quicker: keep Docker installed
+sudo ./uninstall.sh --keep-data     # keep Homeport data and photos
+sudo reboot
+```
+
+`install.sh` records what it changes in `/var/lib/homeport-install/` (packages it newly
+installed, groups, original hostname and boot mode), so `uninstall.sh` removes exactly
+that and leaves what Pi OS shipped with.
 
 ## Building a distribution image
 

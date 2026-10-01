@@ -27,6 +27,9 @@
 #   --debug              Also echo every command as it runs (bash -x)
 #   -h, --help           Show this help
 #
+# What it changes is recorded in /var/lib/homeport-install/ so uninstall.sh
+# can reverse exactly that (and leave anything Pi OS already had alone).
+#
 # Progress is printed as numbered steps with elapsed time, and everything
 # (including apt/docker output) is also saved to /var/log/homeport-install.log.
 
@@ -98,10 +101,33 @@ info "Watchtower:  every ${HP_INTERVAL}s"
 info "Kiosk:       $HP_KIOSK${HP_USER:+ (user: $HP_USER)}"
 info "Log file:    $LOG_FILE"
 
+# ---------------------------------------------------------------- change tracking
+# Records what this script adds, so uninstall.sh removes only that.
+STATE_DIR="/var/lib/homeport-install"
+mkdir -p "$STATE_DIR"
+[[ -f "$STATE_DIR/hostname" ]] || hostname > "$STATE_DIR/hostname"
+pkg_installed() { dpkg-query -W -f='${Status}' "$1" 2>/dev/null | grep -q "install ok installed"; }
+# apt_install [apt options] PKG...: installs, and records packages that weren't already present.
+apt_install() {
+  local a new=()
+  for a in "$@"; do [[ "$a" == -* ]] || pkg_installed "$a" || new+=("$a"); done
+  apt-get install -y "$@"
+  for a in "${new[@]}"; do
+    grep -qx "$a" "$STATE_DIR/packages" 2>/dev/null || echo "$a" >> "$STATE_DIR/packages"
+  done
+  if (( ${#new[@]} )); then info "Newly installed: ${new[*]}"; fi
+}
+# add_group USER GROUP: adds membership, and records it if it's new.
+add_group() {
+  if id -nG "$1" | tr ' ' '\n' | grep -qx "$2"; then return 0; fi
+  usermod -aG "$2" "$1"
+  echo "$1:$2" >> "$STATE_DIR/groups"
+}
+
 # ---------------------------------------------------------------- base packages
 step "Installing base packages (curl, certificates, Avahi mDNS)"
 apt-get update
-apt-get install -y ca-certificates curl gnupg avahi-daemon avahi-utils
+apt_install ca-certificates curl gnupg avahi-daemon avahi-utils
 
 # ---------------------------------------------------------------- docker
 step "Docker Engine"
@@ -113,7 +139,7 @@ if ! command -v docker >/dev/null 2>&1 || ! docker compose version >/dev/null 2>
   echo "deb [arch=arm64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $CODENAME stable" \
     > /etc/apt/sources.list.d/docker.list
   apt-get update
-  apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+  apt_install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 else
   info "Already installed"
 fi
@@ -134,7 +160,7 @@ systemctl enable docker >/dev/null
 systemctl restart docker
 
 if [[ -n "$HP_USER" && "$HP_USER" != "root" ]]; then
-  usermod -aG docker "$HP_USER"   # lets you run docker without sudo (next login)
+  add_group "$HP_USER" docker   # lets you run docker without sudo (next login)
   info "Added '$HP_USER' to the docker group (takes effect at next login)"
 fi
 
@@ -293,10 +319,10 @@ if [[ "$HP_KIOSK" == "yes" ]]; then
   info "Installing cage + Chromium for user '$HP_USER' (Chromium is a large download)"
   CHROMIUM_PKG=chromium
   apt-cache show chromium >/dev/null 2>&1 || CHROMIUM_PKG=chromium-browser
-  apt-get install -y --no-install-recommends cage "$CHROMIUM_PKG" fonts-noto-color-emoji
+  apt_install --no-install-recommends cage "$CHROMIUM_PKG" fonts-noto-color-emoji
   CHROMIUM_BIN="$(command -v chromium || command -v chromium-browser)"
   for g in video render input; do
-    if getent group "$g" >/dev/null; then usermod -aG "$g" "$HP_USER"; fi
+    if getent group "$g" >/dev/null; then add_group "$HP_USER" "$g"; fi
   done
 
   cat > /usr/local/bin/homeport-kiosk <<EOF
@@ -341,6 +367,11 @@ RestartSec=15
 [Install]
 WantedBy=multi-user.target
 EOF
+  # Remember the boot mode before the kiosk changes it (first run only).
+  if [[ ! -f "$STATE_DIR/boot" ]]; then
+    DM_STATE="$(systemctl is-enabled display-manager.service 2>/dev/null)" || true
+    printf 'ORIG_TARGET=%s\nORIG_DM=%s\n' "$(systemctl get-default)" "${DM_STATE:-none}" > "$STATE_DIR/boot"
+  fi
   # A desktop session would fight the kiosk for the display: boot to console.
   if systemctl list-unit-files display-manager.service >/dev/null 2>&1 && \
      systemctl is-enabled display-manager.service >/dev/null 2>&1; then
