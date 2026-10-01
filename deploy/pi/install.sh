@@ -323,7 +323,7 @@ info "Running: $(docker compose ps --format '{{.Name}}' | paste -sd ' ')"
 
 step "Waiting for Homeport to answer on port $HP_PORT"
 for i in $(seq 1 60); do
-  if curl -fsS -o /dev/null "http://localhost:$HP_PORT/"; then UP=yes; break; fi
+  if curl -fs -o /dev/null "http://localhost:$HP_PORT/"; then UP=yes; break; fi
   (( i % 15 == 0 )) && info "still waiting... ($((i * 2))s)"
   sleep 2
 done
@@ -351,7 +351,7 @@ if [[ "$HP_KIOSK" == "yes" ]]; then
 #!/bin/sh
 # Launched by homeport-kiosk.service inside cage (a single-app Wayland compositor).
 # Waits for the local server, then opens the display full-screen.
-until curl -fsS -o /dev/null http://localhost:$HP_PORT/; do sleep 2; done
+until curl -fs -o /dev/null http://localhost:$HP_PORT/; do sleep 2; done
 exec $CHROMIUM_BIN \\
   --kiosk --ozone-platform=wayland \\
   --noerrdialogs --disable-infobars --no-first-run \\
