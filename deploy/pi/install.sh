@@ -127,7 +127,19 @@ export DEBIAN_FRONTEND=noninteractive
 exec > >(tee -a "$LOG_FILE") 2>&1
 [[ "$HP_DEBUG" == "yes" ]] && set -x
 
-log "Homeport installer — $(date '+%Y-%m-%d %H:%M:%S')"
+# Scripts version: deploy/VERSION (separate from the app's VERSION so that
+# script-only changes don't rebuild the image). Next to a repo checkout, read
+# it there; otherwise from GitHub; otherwise the copy saved at the last install.
+SCRIPTS_VERSION=""
+_self="$(realpath "$0" 2>/dev/null || true)"
+if [[ -n "$_self" && -f "$(dirname "$_self")/../VERSION" ]]; then
+  SCRIPTS_VERSION="$(head -n1 "$(dirname "$_self")/../VERSION")"
+else
+  SCRIPTS_VERSION="$(curl -fs --max-time 10 "${HP_SCRIPTS_URL%/pi}/VERSION" 2>/dev/null | head -n1 || true)"
+fi
+[[ -n "$SCRIPTS_VERSION" ]] || SCRIPTS_VERSION="$(cat "$HP_LIB_DIR/scripts-version" 2>/dev/null || echo unknown)"
+
+log "Homeport installer v$SCRIPTS_VERSION — $(date '+%Y-%m-%d %H:%M:%S')"
 info "OS:          $PRETTY_NAME ($(uname -m))"
 info "Hostname:    $HP_HOSTNAME   (currently: $(hostname))"
 info "Image:       $HP_IMAGE:$HP_TAG"
@@ -439,6 +451,7 @@ fi
 step "Management commands: homeport-install, homeport-uninstall"
 mkdir -p "$HP_LIB_DIR"
 echo "$HP_SCRIPTS_URL" > "$HP_LIB_DIR/scripts-url"
+echo "$SCRIPTS_VERSION" > "$HP_LIB_DIR/scripts-version"
 SELF="$(realpath "$0" 2>/dev/null || true)"
 SELF_DIR="$(dirname "$SELF")"
 
@@ -616,6 +629,7 @@ cat <<EOF
   Wi-Fi setup: $HP_WIFI_SETUP
   Config:      $HP_DIR/.env  (edit, then: cd $HP_DIR && sudo docker compose up -d)
   Install log: $LOG_FILE
+  Installer:   v$SCRIPTS_VERSION
   Commands:    sudo homeport-install    (update / re-run with the latest script)
                sudo homeport-uninstall  (remove everything)
 EOF

@@ -27,6 +27,28 @@ Only **public** calendar links are supported — anything that requires
 you to log in isn't reachable by a background job. See "Finding your
 calendar's link" below.
 
+## Ways to run it
+
+| You have | Use | Guide |
+|---|---|---|
+| A Linux machine or NAS that already runs Docker | The compose file: Homeport, plus optional Watchtower for automatic updates. Nothing on the host changes | [`deploy/docker/`](deploy/docker/README.md) |
+| A Synology NAS | Container Manager pulling the published image | [below](#deploy-on-a-synology-nas-container-manager-dsm-72) |
+| A Raspberry Pi with 64-bit Pi OS, and you want everything installed for you | One curl command installs Docker, Watchtower and Homeport, plus optional HDMI kiosk and Wi-Fi setup hotspot | [`deploy/pi/`](deploy/pi/README.md) |
+| A Homeport appliance to ship | The Pi install with everything, sealed into an SD card image | [`deploy/pi/` → Building a distribution image](deploy/pi/README.md#building-a-distribution-image) |
+| A dev machine | `npm start` | [below](#run-it-locally-no-docker) |
+
+Raspberry Pi quick start (64-bit Pi OS, official 27W power supply):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi/install.sh | sudo bash
+```
+
+Then open `http://homeport.local:19156/`. Add `-s -- --no-kiosk --no-wifi-setup` after
+`sudo bash` for a plain install without the appliance extras. After the first install,
+`sudo homeport-install` updates and `sudo homeport-uninstall` removes it.
+On a Pi with no network, the Wi-Fi setup hotspot (`Homeport-Setup-XXXX`) lets a phone put
+it on the home Wi-Fi; see [`deploy/pi/WIFI-SETUP.md`](deploy/pi/WIFI-SETUP.md).
+
 ## Run it locally (no Docker)
 
 ```bash
@@ -197,6 +219,9 @@ mode so there's no address bar or chrome:
   web app with no browser chrome; use Guided Access to lock it there.
 - **Mini PC / old laptop**: Chrome with `--kiosk http://<server-ip>:19156/`
   as a launch flag, run on startup.
+- **Raspberry Pi on HDMI**: the Pi install sets this up for you. Chromium
+  runs full-screen at boot, on the Pi's own Homeport, as soon as a display
+  is connected. See [`deploy/pi/`](deploy/pi/README.md#hdmi-kiosk).
 
 The display re-checks for new events every 5 minutes on its own and
 refreshes its "today" highlight automatically after midnight, so once
@@ -532,6 +557,12 @@ gets a suffix — `2026.09.20.2`, `.3`, and so on — resetting to a plain
 date the next day. There's no build script; bumping `VERSION` is a
 manual step taken alongside packaging any update.
 
+The deployment scripts under `deploy/` have their own version, in
+`deploy/VERSION`, same format. It's separate because pushes that only
+change `deploy/` skip the image build (`paths-ignore` in
+`publish.yml`), so script changes don't restart every running Homeport.
+Bump `deploy/VERSION` for script changes, and `VERSION` for app changes.
+
 ## Project layout
 
 ```
@@ -551,6 +582,12 @@ public/
   photos/  Idle-timeout photo frame images — see "Idle timeout" above
 .github/workflows/
   publish.yml  Builds and publishes the image to GHCR on every push to main
+               (except pushes that only change deploy/)
+deploy/
+  VERSION      Version of the deployment scripts (separate from the app's)
+  docker/      DIY: docker-compose.yml (+ optional Watchtower) for any Docker host
+  pi/          Raspberry Pi install: install.sh, uninstall.sh, prepare-image.sh,
+               wifi-setup.py (Wi-Fi setup hotspot) — see deploy/pi/README.md
 ```
 
 ## Notes & limitations
