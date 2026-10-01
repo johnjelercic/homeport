@@ -10,6 +10,12 @@ name: Build and publish image
 on:
   push:
     branches: [main]
+    # Pushes that only change the Pi install scripts don't touch the app, so
+    # skip the image build: a rebuilt-but-identical image gets a new digest,
+    # and Watchtower would restart every Homeport container for nothing. Any
+    # push that also changes a file outside deploy/ still builds as normal.
+    paths-ignore:
+      - 'deploy/**'
   workflow_dispatch: # lets you trigger a rebuild manually from the Actions tab
 
 # Without this, two pushes close together (e.g. a feature commit followed
