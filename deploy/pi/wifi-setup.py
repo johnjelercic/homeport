@@ -17,9 +17,15 @@ Runs as homeport-wifi-setup.service (installed by install.sh). Behaviour:
 
 Uses NetworkManager (nmcli) for all networking. Python standard library only.
 Settings: /etc/homeport/wifi-setup.conf (KEY=value lines, all optional).
+
+Test mode (for development, over an SSH session on Ethernet):
+    sudo python3 /usr/local/lib/homeport/wifi-setup.py --test
+Pauses the service, starts the hotspot right away while ignoring Ethernet,
+and exits (restarting the service) once the Pi joins a Wi-Fi network or on Ctrl+C.
 """
 
 import html
+import os
 import queue
 import socket
 import subprocess
@@ -63,6 +69,7 @@ def load_config():
 
 
 CFG = load_config()
+TEST_MODE = "--test" in sys.argv[1:]
 IFACE = CFG["IFACE"]
 AP_ADDR = CFG["AP_ADDR"]
 
@@ -95,15 +102,26 @@ def split_terse(line):
     return fields
 
 
+def is_physical(dev):
+    """Real network hardware has a /sys/class/net/<dev>/device link. Docker's
+    veth links and bridges also report as "ethernet"/"connected", so they
+    must not count as being online."""
+    return os.path.exists(f"/sys/class/net/{dev}/device")
+
+
 def online():
-    """True if Ethernet or Wi-Fi is connected through anything but the setup hotspot."""
+    """True if a physical Ethernet port or the Wi-Fi is connected (not via the setup hotspot)."""
     r = sh(["nmcli", "-t", "-f", "DEVICE,TYPE,STATE,CONNECTION", "device"])
     for line in r.stdout.splitlines():
         f = split_terse(line)
         if len(f) < 4:
             continue
-        _dev, typ, state, con = f[:4]
-        if typ in ("ethernet", "wifi") and state.startswith("connected") and con != AP_CON:
+        dev, typ, state, con = f[:4]
+        if typ not in ("ethernet", "wifi") or not state.startswith("connected") or con == AP_CON:
+            continue
+        if TEST_MODE and typ == "ethernet":
+            continue  # test mode: pretend the cable isn't there
+        if is_physical(dev):
             return True
     return False
 
@@ -479,9 +497,24 @@ def main():
         time.sleep(5)
 
 
+def test_main():
+    """Run one setup session now, ignoring Ethernet, with the service paused."""
+    if os.geteuid() != 0:
+        sys.exit("Run with sudo.")
+    sh(["systemctl", "stop", "homeport-wifi-setup.service"])
+    log("TEST MODE: service paused; starting the hotspot now (Ethernet ignored). Ctrl+C to stop.")
+    try:
+        setup_mode()
+        log("TEST MODE: joined Wi-Fi.")
+    finally:
+        stop_ap()
+        sh(["systemctl", "start", "homeport-wifi-setup.service"])
+        log("TEST MODE: done; service restarted.")
+
+
 if __name__ == "__main__":
     try:
-        main()
+        test_main() if TEST_MODE else main()
     except KeyboardInterrupt:
         stop_ap()
         sys.exit(0)

@@ -91,10 +91,15 @@ keyboard:
 Settings: `/etc/homeport/wifi-setup.conf` (hotspot name prefix, optional WPA2 password, timings).
 Logs: `journalctl -u homeport-wifi-setup -f`. Skip with `--no-wifi-setup`.
 
-To test on a dev Pi: connect Ethernet, SSH in over it, forget the Wi-Fi network
-(`sudo nmcli connection delete "<name>"`), then unplug Ethernet (SSH drops here). After about
-3 minutes `Homeport-Setup-XXXX` appears on your phone. Run through the setup page, and the Pi
-rejoins your Wi-Fi, reachable again at `homeport.local`.
+To test on a dev Pi while staying connected over Ethernet:
+
+```bash
+sudo python3 /usr/local/lib/homeport/wifi-setup.py --test
+```
+
+This pauses the service and starts `Homeport-Setup-XXXX` right away, ignoring the cable. Join
+it from your phone and go through the page while watching the log in the terminal. It exits
+once the Pi joins Wi-Fi (or on Ctrl+C) and restarts the service.
 
 ## Building a distribution image
 
