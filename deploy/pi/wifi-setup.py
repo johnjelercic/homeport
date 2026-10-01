@@ -44,7 +44,7 @@ DEFAULTS = {
     "AP_PASSWORD": "",          # empty = open setup network
     "AP_ADDR": "10.42.0.1",
     "BOOT_GRACE": "90",         # seconds to wait for a network at boot
-    "LOST_GRACE": "180",        # seconds offline before re-entering setup
+    "LOST_GRACE": "120",        # seconds offline before re-entering setup
     "RETRY_SAVED_EVERY": "300", # seconds between retries of saved networks in setup mode
     "HOMEPORT_PORT": "19156",
 }

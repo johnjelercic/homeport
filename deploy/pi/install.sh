@@ -559,7 +559,7 @@ if [[ "$HP_WIFI_SETUP" == "yes" ]]; then
 #BOOT_GRACE=90
 
 # Seconds offline (after having been online) before broadcasting again.
-#LOST_GRACE=180
+#LOST_GRACE=120
 
 # Seconds between retries of saved networks while broadcasting.
 #RETRY_SAVED_EVERY=300
@@ -586,7 +586,7 @@ EOF
       systemctl daemon-reload
       systemctl enable homeport-wifi-setup.service >/dev/null
       systemctl restart homeport-wifi-setup.service
-      info "With no network for 90s at boot (3 min later on), broadcasts Homeport-Setup-$(tr -d ':' < /sys/class/net/wlan0/address | tail -c 5 | tr '[:lower:]' '[:upper:]')"
+      info "With no network for 90s at boot (2 min later on), broadcasts Homeport-Setup-$(tr -d ':' < /sys/class/net/wlan0/address | tail -c 5 | tr '[:lower:]' '[:upper:]')"
       info "Settings: /etc/homeport/wifi-setup.conf   Logs: journalctl -u homeport-wifi-setup"
     else
       warn "wifi-setup.py unavailable: Wi-Fi setup not installed"

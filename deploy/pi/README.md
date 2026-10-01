@@ -84,7 +84,7 @@ keyboard:
    pops up a setup page listing nearby networks.
 3. Pick the network and enter the password. The hotspot closes and the Pi joins it. On failure
    the hotspot comes back within about a minute, and the page shows what went wrong.
-4. If the network is lost later for 3 minutes (new router, moved house), the hotspot comes back.
+4. If the network is lost later for 2 minutes (new router, moved house), the hotspot comes back.
    While broadcasting, it retries saved networks every 5 minutes in case the router was just
    rebooting.
 
