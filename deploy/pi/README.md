@@ -188,22 +188,62 @@ sudo homeport-install
 
 ## Building a distribution image
 
-1. Flash 64-bit Pi OS with Raspberry Pi Imager: user `homeport`, your SSH public key, Wi-Fi
-   if needed.
-2. Run the install (curl line above), then check the display, `homeport.local` and the Wi-Fi
-   setup (`--test`).
-3. `sudo ./prepare-image.sh` (download it the same way as `install.sh`). It:
+**On the Pi (the master):**
+
+1. Flash 64-bit Pi OS with Raspberry Pi Imager: user `homeport`, a strong password (every unit
+   shares it), your SSH public key, Wi-Fi if needed. Then `sudo apt update && sudo apt full-upgrade`
+   and reboot.
+2. Install with production settings, using the official 27W power supply:
+   `curl -fsSL https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi/install.sh | sudo bash -s -- --interval 3600`
+   (or `sudo homeport-install --interval 3600` if already installed).
+3. Check it: `vcgencmd get_throttled` shows `0x0`, `sudo docker ps` shows both containers,
+   `homeport.local:19156` loads, `nmcli radio` shows Wi-Fi enabled, and
+   `sudo python3 /usr/local/lib/homeport/wifi-setup.py --test` brings up the hotspot.
+   Optional: `sudo apt clean` makes the image smaller.
+4. Seal it, in the same login session:
+   ```bash
+   unset HISTFILE
+   curl -fsSLO https://raw.githubusercontent.com/johnjelercic/homeport/main/deploy/pi/prepare-image.sh
+   sudo bash prepare-image.sh
+   ```
+   It:
    - wipes Homeport's data and photos, including `token.key`, so households never share it
    - removes SSH host keys (regenerated per unit on first boot)
    - clears the machine ID (each unit then gets its own DHCP identity and IP address)
    - removes saved Wi-Fi networks from disk, so clones start in the setup hotspot and your
      Wi-Fi password isn't shipped (`--keep-wifi` to keep them)
-   - clears logs and shell history
+   - clears logs and shell history (and each unit clears history again on its first boot,
+     since your login session writes its history while the Pi shuts down)
    - powers off
 
    It keeps Docker, the downloaded images (so first boot doesn't need a big download), all
-   settings and your `authorized_keys`.
-4. Image the SD card on your Mac. Every card flashed from it boots as a fresh unit.
+   settings and your `authorized_keys`. **Don't boot the card again before imaging it.**
+
+**On your Mac:**
+
+5. Put the card in and run `deploy/pi/make-image.sh` from the repo. Docker must be running:
+   `colima start` (Colima: `brew install colima docker`), or Docker Desktop. It:
+   - finds the Pi card (a disk with a `bootfs` partition; never your Mac's own drive) and asks
+     you to type its name (e.g. `disk4`) to confirm
+   - copies the card with `dd` (asks for your Mac password; Ctrl+T shows progress), then ejects it
+   - shrinks and compresses it with [PiShrink](https://github.com/Drewsif/PiShrink) in a Linux
+     container. The image only holds the used space and expands to fill any card on first boot
+     (16 GB card: 15 GB image becomes about 2.3 GB)
+   - writes a SHA-256 checksum
+
+   Result: `~/Homeport-images/homeport-YYYY.MM.DD.img.xz` plus `.sha256`. Options: `--disk diskN`,
+   `--out DIR`, `--name NAME`. If macOS says it can't read the card, click **Ignore**, never
+   **Initialize**.
+6. Test it: flash a second card with Raspberry Pi Imager (**Use custom**, pick the `.img.xz`,
+   choose **No** to OS customization). Boot it with no Ethernet and check that:
+   - `Homeport-Setup-XXXX` appears and setup works
+   - `homeport.local:19156` loads
+   - `ssh homeport` works (after `ssh-keygen -R homeport.local` on your Mac)
+   - `df -h /` shows close to the card's full size
+   - `history` is empty
+
+**Checksums:** keep the `.sha256` next to the image wherever you copy it. Before flashing from
+a copy, run `shasum -a 256 -c homeport-YYYY.MM.DD.img.xz.sha256`. It should print `OK`.
 
 After sealing, your Mac will warn that the Pi's host key changed the next time you SSH in.
 Clear it with `ssh-keygen -R homeport.local` and `ssh-keygen -R <its IP>`.
