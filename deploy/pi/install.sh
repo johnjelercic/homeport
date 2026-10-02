@@ -264,9 +264,17 @@ systemctl restart systemd-journald
 # Only acts when prepare-image.sh has removed them; a no-op otherwise.
 cat > /usr/local/sbin/homeport-firstboot <<'EOF'
 #!/bin/sh
+# Runs once, on the first boot of a card made from a sealed image
+# (prepare-image.sh removes the SSH host keys; this puts new ones back).
 set -e
 if ! ls /etc/ssh/ssh_host_*_key >/dev/null 2>&1; then
   ssh-keygen -A
+  # The master's last login session writes its shell history while the Pi
+  # shuts down, after prepare-image.sh has already cleared it. Remove it here,
+  # before anyone can log in to the new unit.
+  for h in /root /home/*; do
+    rm -f "$h/.bash_history" "$h/.zsh_history" "$h/.lesshst" "$h/.python_history" "$h/.wget-hsts"
+  done
 fi
 EOF
 chmod 755 /usr/local/sbin/homeport-firstboot
