@@ -39,7 +39,7 @@ CONF_FILE = "/etc/homeport/wifi-setup.conf"
 AP_CON = "homeport-setup"
 
 DEFAULTS = {
-    "IFACE": "wlan0",
+    "IFACE": "",                # Wi-Fi adapter; empty = automatic (wlan0, else first found)
     "SSID_PREFIX": "Homeport-Setup",
     "AP_PASSWORD": "",          # empty = open setup network
     "AP_ADDR": "10.42.0.1",
@@ -70,7 +70,7 @@ def load_config():
 
 CFG = load_config()
 TEST_MODE = "--test" in sys.argv[1:]
-IFACE = CFG["IFACE"]
+IFACE = None  # chosen at startup by find_wifi_iface()
 AP_ADDR = CFG["AP_ADDR"]
 
 
@@ -107,6 +107,38 @@ def is_physical(dev):
     veth links and bridges also report as "ethernet"/"connected", so they
     must not count as being online."""
     return os.path.exists(f"/sys/class/net/{dev}/device")
+
+
+def find_wifi_iface():
+    """The Wi-Fi adapter to use: IFACE from the config if set, otherwise the
+    first real (physical) Wi-Fi adapter NetworkManager knows about, preferring
+    wlan0 (the Pi's built-in Wi-Fi). None if there isn't one."""
+    if CFG["IFACE"]:
+        return CFG["IFACE"]
+    r = sh(["nmcli", "-t", "-f", "DEVICE,TYPE", "device"])
+    found = []
+    for line in r.stdout.splitlines():
+        f = split_terse(line)
+        if len(f) >= 2 and f[1] == "wifi" and is_physical(f[0]):
+            found.append(f[0])
+    if "wlan0" in found:
+        return "wlan0"
+    return found[0] if found else None
+
+
+def wait_for_wifi_iface():
+    """Set IFACE, waiting (and checking once a minute) if no adapter exists yet."""
+    global IFACE
+    warned = False
+    while True:
+        IFACE = find_wifi_iface()
+        if IFACE:
+            log(f"Using Wi-Fi adapter {IFACE}")
+            return
+        if not warned:
+            log("No Wi-Fi adapter found; checking again every minute")
+            warned = True
+        time.sleep(60)
 
 
 def online():
@@ -213,6 +245,7 @@ def try_join(ssid, password, hidden):
         args += ["hidden", "yes"]
     r = sh(args, timeout=70)
     if r.returncode == 0 and wait_online(20):
+        unbind_profile()
         return True, ""
     # Don't leave a broken profile behind (only remove what this attempt created).
     for name in set(wifi_profiles()) - before:
@@ -223,6 +256,21 @@ def try_join(ssid, password, hidden):
     if "No network with SSID" in err:
         return False, f"Couldn't find “{ssid}”. Check the name, or move Homeport closer to the router."
     return False, f"Couldn't join “{ssid}” ({err or 'no response'}). Please try again."
+
+
+def unbind_profile():
+    """Let the just-joined network's saved profile work on any Wi-Fi adapter.
+    `nmcli device wifi connect ... ifname X` ties the profile to adapter X;
+    clearing that means a replaced or USB adapter can still use it. A profile
+    is only ever active on one adapter at a time, so this never doubles up."""
+    r = sh(["nmcli", "-t", "-f", "GENERAL.CONNECTION", "device", "show", IFACE])
+    name = ""
+    for line in r.stdout.splitlines():
+        f = split_terse(line)
+        if len(f) >= 2 and f[0] == "GENERAL.CONNECTION":
+            name = ":".join(f[1:])  # rejoin in case a ':' in the name wasn't escaped
+    if name and name not in ("--", AP_CON):
+        sh(["nmcli", "connection", "modify", name, "connection.interface-name", ""])
 
 
 def retry_saved():
@@ -480,6 +528,7 @@ def setup_mode():
 def main():
     boot_grace = int(CFG["BOOT_GRACE"])
     lost_grace = int(CFG["LOST_GRACE"])
+    wait_for_wifi_iface()
     stop_ap()  # clean up a hotspot left over from a crash or power loss
     log(f"Waiting up to {boot_grace}s for a network")
     offline_since = time.time()
@@ -502,6 +551,12 @@ def test_main():
     if os.geteuid() != 0:
         sys.exit("Run with sudo.")
     sh(["systemctl", "stop", "homeport-wifi-setup.service"])
+    global IFACE
+    IFACE = find_wifi_iface()
+    if not IFACE:
+        sh(["systemctl", "start", "homeport-wifi-setup.service"])
+        sys.exit("No Wi-Fi adapter found.")
+    log(f"TEST MODE: using Wi-Fi adapter {IFACE}")
     log("TEST MODE: service paused; starting the hotspot now (Ethernet ignored). Ctrl+C to stop.")
     try:
         setup_mode()

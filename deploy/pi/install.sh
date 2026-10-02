@@ -526,12 +526,22 @@ info "Installed /usr/local/sbin/homeport-install and homeport-uninstall"
 # ---------------------------------------------------------------- wifi setup
 step "Wi-Fi setup hotspot"
 WIFI_UNIT=/etc/systemd/system/homeport-wifi-setup.service
+# First real Wi-Fi adapter NetworkManager knows, preferring the built-in wlan0
+# (the same rule wifi-setup.py uses at runtime).
+WIFI_DEV=""
+if command -v nmcli >/dev/null 2>&1; then
+  while IFS=: read -r dev type; do
+    [[ "$type" == "wifi" && -e "/sys/class/net/$dev/device" ]] || continue
+    if [[ -z "$WIFI_DEV" || "$dev" == "wlan0" ]]; then WIFI_DEV="$dev"; fi
+  done < <(nmcli -t -f DEVICE,TYPE device 2>/dev/null)
+fi
 if [[ "$HP_WIFI_SETUP" == "yes" ]]; then
   if ! systemctl is-active --quiet NetworkManager; then
     warn "NetworkManager isn't running (needs Pi OS Bookworm or newer): skipping Wi-Fi setup"
-  elif [[ ! -e /sys/class/net/wlan0 ]]; then
-    warn "No Wi-Fi adapter (wlan0): skipping Wi-Fi setup"
+  elif [[ -z "$WIFI_DEV" ]]; then
+    warn "No Wi-Fi adapter found: skipping Wi-Fi setup"
   else
+    info "Wi-Fi adapter: $WIFI_DEV"
     apt_install python3
     # Pi OS keeps Wi-Fi switched off until a country is set (radio regulations).
     if command -v raspi-config >/dev/null 2>&1; then
@@ -561,6 +571,10 @@ if [[ "$HP_WIFI_SETUP" == "yes" ]]; then
 # Homeport Wi-Fi setup hotspot. Uncomment a setting to change it, then:
 #   sudo systemctl restart homeport-wifi-setup
 # (Keep comments on their own lines; text after a value is part of the value.)
+
+# Wi-Fi adapter. Empty = automatic: wlan0 (built-in) if present, otherwise the
+# first Wi-Fi adapter found. Set e.g. IFACE=wlan1 to force a USB adapter.
+#IFACE=
 
 # Hotspot name prefix; the last 4 characters of the Wi-Fi MAC are appended.
 #SSID_PREFIX=Homeport-Setup
@@ -599,7 +613,7 @@ EOF
       systemctl daemon-reload
       systemctl enable homeport-wifi-setup.service >/dev/null
       systemctl restart homeport-wifi-setup.service
-      info "With no network for 90s at boot (2 min later on), broadcasts Homeport-Setup-$(tr -d ':' < /sys/class/net/wlan0/address | tail -c 5 | tr '[:lower:]' '[:upper:]')"
+      info "With no network for 90s at boot (2 min later on), broadcasts Homeport-Setup-$(tr -d ':' < "/sys/class/net/$WIFI_DEV/address" | tail -c 5 | tr '[:lower:]' '[:upper:]')"
       info "Settings: /etc/homeport/wifi-setup.conf   Logs: journalctl -u homeport-wifi-setup"
     else
       warn "wifi-setup.py unavailable: Wi-Fi setup not installed"

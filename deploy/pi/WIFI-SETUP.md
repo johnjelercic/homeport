@@ -36,6 +36,12 @@ Only **physical** network ports count as "online", meaning the built-in Ethernet
 the Wi-Fi chip. Docker's virtual links (`veth…`, `docker0`, `br-…`) also report as
 "ethernet, connected", and the first version mistook them for a working network.
 
+**Which Wi-Fi adapter:** at startup the service picks the first real Wi-Fi adapter
+NetworkManager reports, preferring `wlan0` (the Pi's built-in Wi-Fi). A USB Wi-Fi adapter is
+used only if there's no built-in one, unless `IFACE` is set in the settings. With no Wi-Fi
+adapter at all, the service waits and checks again every minute. The scan, the hotspot and the
+join all use that one adapter.
+
 **Setup mode, step by step:**
 
 1. Scan for nearby networks. The Pi has a single Wi-Fi radio and can't scan properly while
@@ -55,7 +61,9 @@ the Wi-Fi chip. Docker's virtual links (`veth…`, `docker0`, `br-…`) also rep
    the hotspot, then run `nmcli device wifi connect <ssid> password <pw>` (45s timeout) and
    wait up to 20s to be online.
    - **Success:** the new network is saved, so it reconnects by itself after power cuts, and
-     setup mode ends.
+     setup mode ends. The saved network isn't tied to the adapter that joined it, so it also
+     works if the Wi-Fi adapter is ever replaced. It's still only active on one adapter at a
+     time, so the Pi never ends up with two addresses on the same network.
    - **Failure:** any network profile this attempt created is deleted, the network list is
      rescanned, the hotspot restarts, and the page shows the error.
 
@@ -70,6 +78,7 @@ All settings are optional; uncomment one to change it, then
 
 | Setting | Default | Meaning |
 |---|---|---|
+| `IFACE` | *(automatic)* | Wi-Fi adapter to use. Empty = `wlan0` if present, otherwise the first Wi-Fi adapter found |
 | `SSID_PREFIX` | `Homeport-Setup` | Hotspot name before the `-XXXX` suffix |
 | `AP_PASSWORD` | *(empty)* | Empty = open setup network. 8+ characters = WPA2 |
 | `BOOT_GRACE` | `90` | Seconds to wait for a network at boot |
