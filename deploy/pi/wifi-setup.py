@@ -342,6 +342,8 @@ PAGE = """<!doctype html>
 </div>
 <button type="submit">Connect</button>
 </form>
+<p class="small">If your phone or computer shows a <b>Cancel</b> button on this window, don't
+tap it: that disconnects from {setup}. Tap <b>Connect</b> above instead.</p>
 <p class="small">After connecting, reconnect your phone to your home Wi-Fi and open
 <code>http://{host}.local:{port}</code></p>
 </main></body></html>"""
@@ -359,8 +361,8 @@ DONE = """<!doctype html>
 <body><main>
 <h1>Connecting to {ssid}…</h1>
 <div class="card">
-<p><b>1.</b> Your phone will drop off <b>{setup}</b> in a few seconds.</p>
-<p><b>2.</b> Reconnect your phone to <b>{ssid}</b>.</p>
+<p><b>1.</b> Tap <b>Done</b> (or close this window). Homeport is already joining {ssid}.</p>
+<p><b>2.</b> Your phone will drop off <b>{setup}</b> in a few seconds. Reconnect it to <b>{ssid}</b>.</p>
 <p><b>3.</b> Open <code>http://{host}.local:{port}</code></p>
 </div>
 <p>If Homeport can't connect, <b>{setup}</b> will appear again in about a minute.
@@ -376,6 +378,10 @@ class Portal:
         self.error = ""
         self.requests = queue.Queue()
         self.last_seen = 0.0
+        # Set once Connect is tapped: from then on, phones' "am I online?" checks
+        # get the answer they expect, so the OS turns the sign-in window's
+        # "Cancel" button into "Done".
+        self.submitted = False
 
 
 PORTAL = Portal()
@@ -401,12 +407,32 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         PORTAL.last_seen = time.time()
         host = (self.headers.get("Host") or "").split(":")[0]
+        if PORTAL.submitted and self._answer_connectivity_check(host):
+            return
         if self.path.split("?")[0] != "/" or host not in (AP_ADDR, ""):
             # Anything else (incl. phones' captive-portal checks) -> setup page,
             # which makes iOS/Android/macOS pop the page up automatically.
             self._send(302, "", headers={"Location": f"http://{AP_ADDR}/"})
             return
         self._send(200, render_page())
+
+    def _answer_connectivity_check(self, host):
+        """After Connect: reply to the OS connectivity checks as if online, so
+        the sign-in window offers "Done" instead of "Cancel". True if handled."""
+        path = self.path.split("?")[0].lower()
+        if path in ("/hotspot-detect.html", "/library/test/success.html") or host.endswith("apple.com"):
+            self._send(200, "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>")
+        elif path in ("/generate_204", "/gen_204"):
+            self._send(204, "")
+        elif path == "/connecttest.txt":
+            self._send(200, "Microsoft Connect Test", "text/plain")
+        elif path == "/ncsi.txt":
+            self._send(200, "Microsoft NCSI", "text/plain")
+        elif path == "/success.txt":
+            self._send(200, "success\n", "text/plain")
+        else:
+            return False
+        return True
 
     def do_POST(self):
         PORTAL.last_seen = time.time()
@@ -425,6 +451,7 @@ class Handler(BaseHTTPRequestHandler):
             PORTAL.error = "Choose a network, or type its name under “Other network”."
             self._send(303, "", headers={"Location": "/"})
             return
+        PORTAL.submitted = True
         self._send(200, DONE.format(
             ssid=html.escape(ssid), setup=html.escape(setup_ssid()),
             host=html.escape(socket.gethostname()), port=CFG["HOMEPORT_PORT"]))
@@ -444,7 +471,7 @@ def render_page():
         rows.append('<p class="small">No networks found nearby. Type your network name below.</p>')
     error = f'<div class="card err">{html.escape(PORTAL.error)}</div>' if PORTAL.error else ""
     return PAGE.format(
-        error=error, networks="\n".join(rows),
+        error=error, networks="\n".join(rows), setup=html.escape(setup_ssid()),
         other_checked="" if PORTAL.networks else "checked",
         host=html.escape(socket.gethostname()), port=CFG["HOMEPORT_PORT"])
 
@@ -484,6 +511,7 @@ def setup_mode():
     PORTAL.error = ""
     last_saved_try = time.time()
     while True:
+        PORTAL.submitted = False
         if not start_ap():
             ensure_radio_on()  # in case something switched Wi-Fi off meanwhile
             time.sleep(30)

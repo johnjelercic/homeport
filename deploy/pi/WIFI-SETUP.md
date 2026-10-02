@@ -14,9 +14,16 @@ Installed by `install.sh` (step 9) as `homeport-wifi-setup.service`, running
 4. The page lists nearby networks, strongest first, with a lock icon on secured ones, plus
    **Other network…** for hidden or unlisted networks. They pick theirs, enter the password
    and tap **Connect**.
-5. The page says: *reconnect your phone to your Wi-Fi, then open
-   `http://homeport.local:19156`*. A few seconds later the setup network disappears and the
-   Pi joins theirs.
+5. The page tells them to tap **Done**, reconnect their phone to their Wi-Fi, then open
+   `http://homeport.local:19156`. A few seconds later the setup network disappears and the Pi
+   joins theirs.
+
+   The **Cancel**/**Done** button belongs to the phone's or Mac's sign-in window, not to our
+   page. It shows **Cancel** while the OS thinks the network still needs sign-in, and tapping
+   that disconnects from `Homeport-Setup-XXXX`. Before **Connect**, nothing has been sent, so the
+   Pi stays in setup mode; the page warns about this. Once **Connect** is tapped, the setup page
+   answers the OS connectivity checks with "online" (Apple, Android, Windows, Firefox), so the
+   button turns into **Done**.
 6. If joining fails (wrong password, out of range), `Homeport-Setup-XXXX` comes back within
    about a minute. Rejoining it shows the reason at the top of the page.
 
