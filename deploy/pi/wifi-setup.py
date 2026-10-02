@@ -126,6 +126,20 @@ def find_wifi_iface():
     return found[0] if found else None
 
 
+def ensure_radio_on():
+    """Make sure Wi-Fi is switched on. It can be off in two places: the kernel's
+    rfkill soft block, and NetworkManager's own (saved) Wi-Fi switch. Both
+    were found off on the first boot of a card flashed from a sealed image.
+    Either one alone stops scanning and the hotspot ("Found 0 networks",
+    "No suitable device found"), so switch both on regardless of the cause."""
+    r = sh(["nmcli", "radio", "wifi"])
+    if r.stdout.strip() != "enabled":
+        log("Wi-Fi was switched off; switching it on")
+    sh(["rfkill", "unblock", "wifi"])
+    sh(["nmcli", "radio", "wifi", "on"])
+    time.sleep(2)  # give the adapter a moment to become available
+
+
 def wait_for_wifi_iface():
     """Set IFACE, waiting (and checking once a minute) if no adapter exists yet."""
     global IFACE
@@ -464,12 +478,14 @@ def start_http():
 def setup_mode():
     """Run the hotspot until the Pi is online again."""
     log("Entering setup mode")
+    ensure_radio_on()
     PORTAL.networks = scan()
     log(f"Found {len(PORTAL.networks)} networks")
     PORTAL.error = ""
     last_saved_try = time.time()
     while True:
         if not start_ap():
+            ensure_radio_on()  # in case something switched Wi-Fi off meanwhile
             time.sleep(30)
             if online():
                 return

@@ -556,7 +556,10 @@ if [[ "$HP_WIFI_SETUP" == "yes" ]]; then
         info "Wi-Fi country: $WIFI_CC"
       fi
     fi
+    # Wi-Fi can be off in two places: rfkill, and NetworkManager's own saved
+    # switch. rfkill alone isn't enough, so turn both on.
     rfkill unblock wifi 2>/dev/null || true
+    nmcli radio wifi on 2>/dev/null || true
 
     if [[ -n "$SELF" && "$(basename "$SELF")" == "install.sh" && "$SELF_DIR" != "$HP_LIB_DIR" ]]; then
       save_script wifi-setup.py "$SELF_DIR/wifi-setup.py"

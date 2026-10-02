@@ -116,6 +116,13 @@ rfkill list wifi                             # "Soft blocked: yes" = Wi-Fi switc
 sudo raspi-config nonint get_wifi_country    # blank = Wi-Fi off until a country is set
 ```
 
+**"Found 0 networks" / "Could not start hotspot: No suitable device found":** Wi-Fi is
+switched off. It can be off in two places: `rfkill list wifi` shows `Soft blocked: yes`, and
+`nmcli radio` shows `WIFI disabled`. This happened on the first boot of a card flashed from
+the first distribution image (cause not yet confirmed; possibly Pi OS treating the cloned card
+as a new install, since sealing clears the machine ID). The installer and the setup service both
+switch it back on. By hand: `sudo rfkill unblock wifi && sudo nmcli radio wifi on`.
+
 **Known limits:**
 
 - The setup page can't show the Pi's new IP address. The Pi only gets one after closing the
