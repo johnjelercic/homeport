@@ -279,9 +279,26 @@ def key_mgmt_for(net, password):
     return "wpa-psk"  # WPA2, WPA1/WPA2, WPA2/WPA3 transition, or unknown (hidden)
 
 
+def saved_profiles_for(ssid):
+    """Saved Wi-Fi profiles for this network name (excluding the setup hotspot)."""
+    names = []
+    for name in wifi_profiles():
+        r = sh(["nmcli", "-g", "802-11-wireless.ssid", "connection", "show", name])
+        if r.stdout.strip() == ssid or name in (ssid, f"{ssid} (Homeport)"):
+            names.append(name)
+    return names
+
+
 def try_join(ssid, password, hidden, known=None):
     """Join a network with the hotspot already stopped. Returns (ok, message).
     `known` is the network as seen in the setup page's scan, if it was listed."""
+    # What's entered on the setup page replaces any saved copy of this network
+    # (e.g. after the router's password changed). Joining with a password while
+    # an old profile for the same network exists fails in NetworkManager with
+    # "802-11-wireless-security.key-mgmt: property is missing".
+    for name in saved_profiles_for(ssid):
+        log(f"Replacing saved network '{name}'")
+        sh(["nmcli", "connection", "delete", name])
     before = set(wifi_profiles())
     net = None if hidden else wait_until_visible(ssid)
     args = ["nmcli", "--wait", "45", "device", "wifi", "connect", ssid, "ifname", IFACE]
@@ -296,7 +313,7 @@ def try_join(ssid, password, hidden, known=None):
         # from this scan or the one the setup page showed.
         for name in set(wifi_profiles()) - before:
             sh(["nmcli", "connection", "delete", name])
-        name = ssid if ssid not in before else f"{ssid} (Homeport)"
+        name = ssid
         add = ["nmcli", "connection", "add", "type", "wifi", "ifname", IFACE,
                "con-name", name, "ssid", ssid]
         if hidden:
