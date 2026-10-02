@@ -184,9 +184,14 @@ def wifi_profiles():
 
 
 def scan():
-    """Nearby networks as [{ssid, signal, secure}], strongest first, de-duplicated."""
+    """Nearby networks as [{ssid, signal, secure, security}], strongest first, de-duplicated."""
     sh(["nmcli", "device", "wifi", "rescan", "ifname", IFACE], timeout=20)
     time.sleep(4)
+    return list_networks()
+
+
+def list_networks():
+    """Networks from NetworkManager's current scan results (no new scan)."""
     r = sh(["nmcli", "-t", "-f", "SSID,SIGNAL,SECURITY", "device", "wifi", "list", "ifname", IFACE])
     best = {}
     for line in r.stdout.splitlines():
@@ -199,7 +204,8 @@ def scan():
         except ValueError:
             signal = 0
         if ssid not in best or signal > best[ssid]["signal"]:
-            best[ssid] = {"ssid": ssid, "signal": signal, "secure": sec not in ("", "--")}
+            best[ssid] = {"ssid": ssid, "signal": signal, "secure": sec not in ("", "--"),
+                          "security": sec}
     return sorted(best.values(), key=lambda n: -n["signal"])
 
 
@@ -249,27 +255,72 @@ def wait_online(seconds):
     return online()
 
 
-def try_join(ssid, password, hidden):
-    """Join a network with the hotspot already stopped. Returns (ok, message)."""
+def wait_until_visible(ssid, seconds=20):
+    """Right after the hotspot closes, NetworkManager's scan list is often empty
+    (the radio was busy being the hotspot). Rescan until the network shows up,
+    so NetworkManager knows its security type. Returns the network or None."""
+    end = time.time() + seconds
+    while time.time() < end:
+        sh(["nmcli", "device", "wifi", "rescan", "ifname", IFACE], timeout=20)
+        time.sleep(3)
+        for n in list_networks():
+            if n["ssid"] == ssid:
+                return n
+    return None
+
+
+def key_mgmt_for(net, password):
+    """NetworkManager key-mgmt value for a network from the scan's SECURITY field."""
+    if not password:
+        return None  # open network
+    sec = (net or {}).get("security", "")
+    if "WPA3" in sec and "WPA2" not in sec and "WPA1" not in sec:
+        return "sae"  # WPA3-only
+    return "wpa-psk"  # WPA2, WPA1/WPA2, WPA2/WPA3 transition, or unknown (hidden)
+
+
+def try_join(ssid, password, hidden, known=None):
+    """Join a network with the hotspot already stopped. Returns (ok, message).
+    `known` is the network as seen in the setup page's scan, if it was listed."""
     before = set(wifi_profiles())
+    net = None if hidden else wait_until_visible(ssid)
     args = ["nmcli", "--wait", "45", "device", "wifi", "connect", ssid, "ifname", IFACE]
     if password:
         args += ["password", password]
     if hidden:
         args += ["hidden", "yes"]
     r = sh(args, timeout=70)
+    err = (r.stderr or r.stdout).strip()
+    if r.returncode != 0 and ("key-mgmt" in err or "property is missing" in err):
+        # NetworkManager couldn't tell the security type: set it explicitly,
+        # from this scan or the one the setup page showed.
+        for name in set(wifi_profiles()) - before:
+            sh(["nmcli", "connection", "delete", name])
+        name = ssid if ssid not in before else f"{ssid} (Homeport)"
+        add = ["nmcli", "connection", "add", "type", "wifi", "ifname", IFACE,
+               "con-name", name, "ssid", ssid]
+        if hidden:
+            add += ["802-11-wireless.hidden", "yes"]
+        km = key_mgmt_for(net or known, password)
+        if km:
+            add += ["wifi-sec.key-mgmt", km, "wifi-sec.psk", password]
+        log(f"Retrying with an explicit profile ({km or 'open'})")
+        r = sh(add)
+        if r.returncode == 0:
+            r = sh(["nmcli", "--wait", "45", "connection", "up", name], timeout=70)
+        err = (r.stderr or r.stdout).strip()
     if r.returncode == 0 and wait_online(20):
         unbind_profile()
         return True, ""
     # Don't leave a broken profile behind (only remove what this attempt created).
     for name in set(wifi_profiles()) - before:
         sh(["nmcli", "connection", "delete", name])
-    err = (r.stderr or r.stdout).strip()
-    if "Secrets were required" in err or "password" in err.lower():
+    log(f"Join failed: {err or 'no response'}")
+    if "Secrets were required" in err or "password" in err.lower() or "psk" in err.lower():
         return False, f"Couldn't join “{ssid}”. Check the password and try again."
-    if "No network with SSID" in err:
+    if "No network with SSID" in err or (not hidden and net is None and known is None):
         return False, f"Couldn't find “{ssid}”. Check the name, or move Homeport closer to the router."
-    return False, f"Couldn't join “{ssid}” ({err or 'no response'}). Please try again."
+    return False, f"Couldn't join “{ssid}”. Check the password, make sure the router is on, and try again."
 
 
 def unbind_profile():
@@ -534,7 +585,8 @@ def setup_mode():
                         srv = None
                     stop_ap()
                     log(f"Trying to join '{ssid}'")
-                    ok, msg = try_join(ssid, password, hidden)
+                    known = next((n for n in PORTAL.networks if n["ssid"] == ssid), None)
+                    ok, msg = try_join(ssid, password, hidden, known)
                     if ok:
                         log(f"Joined '{ssid}'")
                         joined = True

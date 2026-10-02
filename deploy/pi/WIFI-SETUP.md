@@ -64,9 +64,13 @@ join all use that one adapter.
 4. Serve the setup page on `10.42.0.1:80`. It's a small web server built into
    `wifi-setup.py`, running on the Pi itself rather than in Docker, so it works even if
    Docker or Homeport is down. Homeport keeps running on port 19156 throughout.
-5. On **Connect**: send the "Connecting…" page, wait 3 seconds so it reaches the phone, close
-   the hotspot, then run `nmcli device wifi connect <ssid> password <pw>` (45s timeout) and
-   wait up to 20s to be online.
+5. On **Connect**: send the "Connecting…" page, wait 3 seconds so it reaches the phone, and close
+   the hotspot. Then rescan until the network shows up (up to 20s). Right after the hotspot
+   closes, NetworkManager's scan list is often empty, and joining without the network's security
+   type fails with "key-mgmt: property is missing". Then run
+   `nmcli device wifi connect <ssid> password <pw>` (45s timeout). If NetworkManager still can't
+   tell the security type, retry with an explicit profile (`wpa-psk`, or `sae` for WPA3-only
+   networks) using the setup page's scan. Then wait up to 20s to be online.
    - **Success:** the new network is saved, so it reconnects by itself after power cuts, and
      setup mode ends. The saved network isn't tied to the adapter that joined it, so it also
      works if the Wi-Fi adapter is ever replaced. It's still only active on one adapter at a
